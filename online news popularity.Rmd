@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
+library(readxl)
+library(rvest)
 library(extraDistr)
 library(ISLR)
 library(glmnet) 
@@ -19,5 +21,5 @@ library(boot)
 ```
 
 ```{r}
-df = read.table("OnlineNewsPopularity.xls", header = TRUE)
+df = read_csv("OnlineNewsPopularity.csv")
 ```
