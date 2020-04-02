@@ -22,4 +22,10 @@ library(boot)
 
 ```{r}
 df = read_csv("OnlineNewsPopularity.csv")
+plot(df$timedelta)
+hist(df$n_tokens_title)
+hist(df$n_tokens_content)
+for (i in 2:61) {
+  hist(df[[i]])
+}
 ```
