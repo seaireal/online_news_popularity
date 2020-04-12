@@ -1,15 +1,16 @@
 ---
-title: "online news popularity"
-author: "Shanshan Hu"
+title: "Online News Popularity"
+author: "Hui Wang, Shanshan Hu, and Zhichao Hu"
 date: "4/1/2020"
-output: html_document
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r}
 library(tidyverse)
 library(readxl)
 library(rvest)
@@ -18,6 +19,7 @@ library(ISLR)
 library(glmnet) 
 library(pls) 
 library(boot)
+library(leaps)   # for regsubset
 ```
 
 ```{r}
@@ -28,4 +30,53 @@ hist(df$n_tokens_content)
 for (i in 2:61) {
   hist(df[[i]])
 }
+```
+
+```{r}
+# linear regression
+
+plot(df$shares)   # heavily positive skewness
+# colnames(df)
+df <- df[,-1]   # delete url col
+
+lm <- lm(shares ~ timedelta+n_tokens_title+n_tokens_content+n_unique_tokens+n_non_stop_words+n_non_stop_unique_tokens+
+           num_hrefs+num_self_hrefs+num_imgs+num_videos+
+           average_token_length+num_keywords+
+           data_channel_is_lifestyle+data_channel_is_entertainment+data_channel_is_bus+data_channel_is_socmed+
+           data_channel_is_tech+data_channel_is_world+
+           
+           kw_min_min+kw_max_min+kw_avg_min+kw_min_max+kw_max_max+kw_avg_max+kw_min_avg+kw_max_avg+kw_avg_avg+
+           self_reference_min_shares+self_reference_max_shares+self_reference_avg_sharess+
+           weekday_is_monday+weekday_is_tuesday+weekday_is_wednesday+weekday_is_thursday+weekday_is_friday+
+           weekday_is_saturday+weekday_is_sunday+is_weekend+
+           
+           LDA_00+LDA_01+LDA_02+LDA_03+LDA_04+
+           global_subjectivity+global_sentiment_polarity+global_rate_positive_words+global_rate_negative_words+
+           rate_positive_words+rate_negative_words+avg_positive_polarity+min_positive_polarity+
+           max_positive_polarity+avg_negative_polarity+min_negative_polarity+max_negative_polarity+
+           title_subjectivity+title_sentiment_polarity+abs_title_subjectivity+abs_title_sentiment_polarity, data=df)
+summary(lm)
+
+# from the description of the predictors and the sammry of the lm, we can easily know that 
+# the model doesn't fit well at least because of the multicollinearity
+```
+
+```{r}
+# subset regression
+lm.subset = regsubsets(shares ~ ., data=df, really.big=T)
+lm.subset.summary = summary(lm.subset)
+
+which.min(lm.subset.summary$bic)
+which.max(lm.subset.summary$adjr2)
+
+par(mfrow = c(1, 2))
+plot(lm.subset.summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
+main = "BIC of the Model")
+plot(lm.subset.summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20,
+type = "l", main = "adj_R2 of the Model")
+
+coef(lm.subset,9)
+
+# the adjusted R2 is still too low, only around 2%, why?
+# need to try other methods, such as ridge and lasso
 ```
