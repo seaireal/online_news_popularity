@@ -20,6 +20,7 @@ library(glmnet)
 library(pls) 
 library(boot)
 library(leaps)   # for regsubset
+library(MASS)
 ```
 
 ```{r}
@@ -37,9 +38,9 @@ for (i in 2:61) {
 
 plot(df$shares)   # heavily positive skewness
 # colnames(df)
-df <- df[,-1]   # delete url col
+df <- df[,-1:-2]   # delete 2 non-predictive variables
 
-lm <- lm(shares ~ timedelta+n_tokens_title+n_tokens_content+n_unique_tokens+n_non_stop_words+n_non_stop_unique_tokens+
+lm <- lm(shares ~ n_tokens_title+n_tokens_content+n_unique_tokens+n_non_stop_words+n_non_stop_unique_tokens+
            num_hrefs+num_self_hrefs+num_imgs+num_videos+
            average_token_length+num_keywords+
            data_channel_is_lifestyle+data_channel_is_entertainment+data_channel_is_bus+data_channel_is_socmed+
@@ -79,4 +80,28 @@ coef(lm.subset,9)
 
 # the adjusted R2 is still too low, only around 2%, why?
 # need to try other methods, such as ridge and lasso
+```
+
+```{r}
+# LDA
+
+# classify the shares into 3 groups
+df$shares_class = rep(0, length(df$shares))
+df$shares_class[df$shares > quantile(df$shares,  probs = c(0.33,0.67))[1]] = 1
+df$shares_class[df$shares > quantile(df$shares,  probs = c(0.33,0.67))[2]] = 2
+df$shares_class = as.numeric(df$shares_class)
+# summary(df$shares_class)
+
+# split the data set into a training set and a test set
+set.seed(123)
+split_size = nrow(df)/2
+training = sample(1:nrow(df), split_size)
+training_set = df[training, ]
+test_set = df[-training, ]
+
+# perform LDA on the training data
+lda.fit = lda(shares_class ~ ., data = training_set)
+lda.pred = predict(lda.fit, test_set)
+train_MSE = mean(lda.fit$residuals^2)
+Test_MSE = mean((test_set$shares_class - lda.pred)^2)
 ```
