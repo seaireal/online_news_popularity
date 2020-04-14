@@ -130,7 +130,7 @@ Y_test = df_test$shares
 set.seed(1)
 ridge_cv = cv.glmnet(X_test, Y_test, alpha = 0)
 ridge_lam = ridge_cv$lambda.min
-ridge_mod = glmnet(X, Y, alpha = 0, lambda = ridge_lam)
+ridge_mod = glmnet(X_train, Y_train, alpha = 0, lambda = ridge_lam)
 ridge_pred = predict(ridge_mod, s=ridge_lam, newx=X_test)
 ridge_rmse = mean((ridge_pred-Y_test)^2) %>% sqrt()
 ```
@@ -265,6 +265,8 @@ pcr.pred=predict(pcr.fit, X_test, ncomp =44)
 mean((as.numeric(pcr.pred)-Y_test)^2)
 pcr.pred=predict(pcr.fit, X_test, ncomp =1)
 mean((as.numeric(pcr.pred)-Y_test)^2)
+pcr.m=pcr(shares∼.-ranks, data=df,scale =TRUE ,ncomp =38)
+summary(pcr.m)
 ```
 
 # PLS
@@ -278,6 +280,10 @@ pls.pred=predict(pls.fit, X_test, ncomp =4)
 mean((pls.pred -Y_test)^2)
 pls.pred=predict(pls.fit, X_test, ncomp =43)
 mean((pls.pred -Y_test)^2)
+pls.m=plsr(shares∼.-ranks, data=df,scale=TRUE ,ncomp =4)
+summary(pls.m)
+pls.m=plsr(shares∼.-ranks, data=df,scale=TRUE ,ncomp =43)
+summary(pls.m)
 ```
 
 
