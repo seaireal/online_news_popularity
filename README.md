@@ -1,5 +1,6 @@
 # Predicting the popularity of online news with article attributes
-# This dataset covers 39797 articles and 61 attributes (58 predictive attributes, 2 non-predictive, 1 goal field)for each article. 
+
+This dataset covers 39797 articles and 61 attributes (58 predictive attributes, 2 non-predictive, 1 goal field)for each article. 
 
 Attribute Information:
 0. url: URL of the article (non-predictive)
