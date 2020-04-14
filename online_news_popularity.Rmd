@@ -12,51 +12,49 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(readxl)
-library(rvest)
-library(extraDistr)
-library(ISLR)
-library(glmnet) 
+library(glmnet) # ridge and lasso
 library(pls) 
 library(boot)
-library(leaps)   # for regsubset
+library(leaps)  # regsubset
 library(MASS)
 ```
 
+# Load data
+
 ```{r}
 df = read_csv("OnlineNewsPopularity.csv")
-plot(df$timedelta)
-hist(df$n_tokens_title)
-hist(df$n_tokens_content)
-for (i in 2:61) {
-  hist(df[[i]])
-}
 ```
+# Prepare data
+
+```{r}
+# delete 2 non-predictive variables
+# divide the shares into 3 groups: 1-high, 2-medium, and 3-low
+df <- df %>% select(-url, -timedelta) %>% 
+  mutate(ranks = case_when(
+    shares > quantile(df$shares,  probs = c(0.33,0.67))[[2]] ~ 1,
+    shares < quantile(df$shares,  probs = c(0.33,0.67))[[1]] ~ 3,
+    TRUE ~ 2
+  ) %>% as_factor())
+
+# table(df$ranks)
+
+# split the data set into a training set and a test set
+set.seed(123)
+split_size = nrow(df)/2
+training = sample(1:nrow(df), split_size)
+df_train = df[training, ]
+df_test = df[-training, ]
+```
+
+# Linear regression
 
 ```{r}
 # linear regression
 
 plot(df$shares)   # heavily positive skewness
-# colnames(df)
-df <- df[,-1:-2]   # delete 2 non-predictive variables
 
-lm <- lm(shares ~ n_tokens_title+n_tokens_content+n_unique_tokens+n_non_stop_words+n_non_stop_unique_tokens+
-           num_hrefs+num_self_hrefs+num_imgs+num_videos+
-           average_token_length+num_keywords+
-           data_channel_is_lifestyle+data_channel_is_entertainment+data_channel_is_bus+data_channel_is_socmed+
-           data_channel_is_tech+data_channel_is_world+
-           
-           kw_min_min+kw_max_min+kw_avg_min+kw_min_max+kw_max_max+kw_avg_max+kw_min_avg+kw_max_avg+kw_avg_avg+
-           self_reference_min_shares+self_reference_max_shares+self_reference_avg_sharess+
-           weekday_is_monday+weekday_is_tuesday+weekday_is_wednesday+weekday_is_thursday+weekday_is_friday+
-           weekday_is_saturday+weekday_is_sunday+is_weekend+
-           
-           LDA_00+LDA_01+LDA_02+LDA_03+LDA_04+
-           global_subjectivity+global_sentiment_polarity+global_rate_positive_words+global_rate_negative_words+
-           rate_positive_words+rate_negative_words+avg_positive_polarity+min_positive_polarity+
-           max_positive_polarity+avg_negative_polarity+min_negative_polarity+max_negative_polarity+
-           title_subjectivity+title_sentiment_polarity+abs_title_subjectivity+abs_title_sentiment_polarity, data=df)
-summary(lm)
+lmod <- lm(shares ~ ., data=df)
+summary(lmod)
 
 # from the description of the predictors and the sammry of the lm, we can easily know that 
 # the model doesn't fit well at least because of the multicollinearity
@@ -64,44 +62,48 @@ summary(lm)
 
 ```{r}
 # subset regression
-lm.subset = regsubsets(shares ~ ., data=df, really.big=T)
-lm.subset.summary = summary(lm.subset)
+lmod_subset = regsubsets(shares ~ ., data=df, really.big=T)
+lmod_subset_summary = summary(lmod_subset)
 
-which.min(lm.subset.summary$bic)
-which.max(lm.subset.summary$adjr2)
+which.min(lmod_subset_summary$bic)
+which.max(lmod_subset_summary$adjr2)
 
 par(mfrow = c(1, 2))
-plot(lm.subset.summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
+plot(lmod_subset_summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
 main = "BIC of the Model")
-plot(lm.subset.summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20,
+plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20,
 type = "l", main = "adj_R2 of the Model")
 
-coef(lm.subset,9)
+coef(lmod_subset,9)
 
 # the adjusted R2 is still too low, only around 2%, why?
 # need to try other methods, such as ridge and lasso
 ```
 
-```{r}
 # LDA
 
-# classify the shares into 3 groups
-df$shares_class = rep(0, length(df$shares))
-df$shares_class[df$shares > quantile(df$shares,  probs = c(0.33,0.67))[1]] = 1
-df$shares_class[df$shares > quantile(df$shares,  probs = c(0.33,0.67))[2]] = 2
-df$shares_class = as.numeric(df$shares_class)
-# summary(df$shares_class)
-
-# split the data set into a training set and a test set
-set.seed(123)
-split_size = nrow(df)/2
-training = sample(1:nrow(df), split_size)
-training_set = df[training, ]
-test_set = df[-training, ]
-
+```{r}
 # perform LDA on the training data
-lda.fit = lda(shares_class ~ ., data = training_set)
-lda.pred = predict(lda.fit, test_set)
-train_MSE = mean(lda.fit$residuals^2)
-Test_MSE = mean((test_set$shares_class - lda.pred)^2)
+lda_mod = lda(ranks ~ . -shares, data = df_train)
+lda_pred = predict(lda_mod, df_test)
+lda_ranks = lda_pred$class
+test_ranks = df_test$ranks
+print("confusion table")
+table(lda_ranks, test_ranks)
+print("test error rate")
+mean(lda_ranks!=test_ranks)
+```
+
+# QDA
+
+```{r}
+# perform LDA on the training data
+qda_mod = qda(ranks ~ . -shares, data = df_train)
+qda_pred = predict(qda_mod, df_test)
+qda_ranks = qda_pred$class
+#test_ranks = df_test$ranks
+print("confusion table")
+table(qda_ranks, test_ranks)
+print("test error rate")
+mean(qda_ranks!=test_ranks)
 ```
