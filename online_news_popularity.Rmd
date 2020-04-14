@@ -57,7 +57,7 @@ df <- df %>% select(-url, -timedelta) %>%
       TRUE ~ 2
     ) %>% as_factor()
     
-  ) %>% select(-starts_with("data_channel_is"), -starts_with("weekday_is"))
+  ) %>% select(-starts_with("data_channel_is"), -starts_with("weekday_is"), -weekday)
 
 # table(df$ranks)
 ```
@@ -78,7 +78,7 @@ df_test = df[-training, ]
 
 plot(df$shares)   # heavily positive skewness
 
-lmod <- lm(shares ~ ., data=df)
+lmod <- lm(shares ~ . -ranks, data=df)
 summary(lmod)
 
 # from the description of the predictors and the sammry of the lm, we can easily know that 
@@ -87,7 +87,8 @@ summary(lmod)
 
 ```{r}
 # subset selection
-lmod_subset = regsubsets(shares ~ ., data=df, really.big=T)
+lmod_formula = formula(lmod)
+lmod_subset = regsubsets(lmod_formula, data=df, method="forward", nvmax=50)
 lmod_subset_summary = summary(lmod_subset)
 
 which.min(lmod_subset_summary$bic)
@@ -95,16 +96,23 @@ which.max(lmod_subset_summary$adjr2)
 
 par(mfrow = c(1, 2))
 plot(lmod_subset_summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
-main = "BIC of the Model")
-plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20,
-type = "l", main = "adj_R2 of the Model")
+     main = "BIC of the Model")
+points(11,lmod_subset_summary$bic[11],col="red",cex=2,pch=20)
+plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20, type = "l",
+     main = "adj_R2 of the Model")
+points(41,lmod_subset_summary$adjr2[41],col="red",cex=2,pch=20)
 
-coef(lmod_subset,9)
+coef(lmod_subset, 11)
 
 # the adjusted R2 is still too low, only around 2%, why?
 # need to try other methods, such as ridge and lasso
 ```
 
+# Ridge
+
+```{r}
+
+```
 # LDA
 
 ```{r}
