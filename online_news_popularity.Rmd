@@ -15,7 +15,7 @@ library(tidyverse)
 library(glmnet) # ridge and lasso
 library(pls) 
 library(boot)
-library(leaps)  # regsubset
+library(leaps) # regsubset
 library(MASS)
 ```
 
@@ -61,7 +61,7 @@ summary(lmod)
 ```
 
 ```{r}
-# subset regression
+# subset selection
 lmod_subset = regsubsets(shares ~ ., data=df, really.big=T)
 lmod_subset_summary = summary(lmod_subset)
 
@@ -85,6 +85,7 @@ coef(lmod_subset,9)
 ```{r}
 # perform LDA on the training data
 lda_mod = lda(ranks ~ . -shares, data = df_train)
+#coef(lda_mod) %>% dim()
 lda_pred = predict(lda_mod, df_test)
 lda_ranks = lda_pred$class
 test_ranks = df_test$ranks
