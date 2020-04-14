@@ -153,6 +153,7 @@ coef(lasso_mod)
 
 ```{r}
 # perform LDA on the training data
+# use predictors chosen by Lasso
 lda_mod = lda(ranks ~ 
                 n_tokens_title+
                 n_unique_tokens+
@@ -246,6 +247,7 @@ X_test_knn = scale(X_test)
 # Using loop to test for K takes a long time, 9 is roughly the best
 set.seed(1)
 knn_ranks = knn(X_train_knn, X_test_knn, df_train$ranks, 9)
+print("test error rate")
 mean(knn_ranks!=test_ranks)
 ```
 
