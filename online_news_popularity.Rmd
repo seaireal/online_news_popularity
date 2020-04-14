@@ -17,6 +17,7 @@ library(pls)
 library(boot)
 library(leaps) # regsubset
 library(MASS)
+library (pls) # PCR PLS
 ```
 
 # Load data
@@ -29,7 +30,7 @@ df = read_csv("OnlineNewsPopularity.csv")
 ```{r}
 # delete 2 non-predictive variables
 # divide the shares into 2 groups: 0 - not popular, 1 - popular
-df <- df %>% select(-url, -timedelta) %>% 
+df <- df %>% dplyr::select(-url, -timedelta) %>% 
   mutate(
 
     channel = case_when(
@@ -57,7 +58,7 @@ df <- df %>% select(-url, -timedelta) %>%
       shares <= median(df$shares) ~ 0
     ) %>% as_factor()
     
-  ) %>% select(-starts_with("data_channel_is"), -starts_with("weekday_is"), -channel, -weekday)
+  ) %>% dplyr::select(-starts_with("data_channel_is"), -starts_with("weekday_is"), -channel, -weekday)
 
 # remove channel as not all categories are covered (6134 unclassified)
 # remove weekday as is_weekend variable captures this information
@@ -247,3 +248,36 @@ set.seed(1)
 knn_ranks = knn(X_train_knn, X_test_knn, df_train$ranks, 9)
 mean(knn_ranks!=test_ranks)
 ```
+
+# PCR
+```{r}
+set.seed (1)
+pcr.fit=pcr(shares∼.-ranks, data=df_train, scale=TRUE, validation ="CV")
+summary (pcr.fit)
+validationplot(pcr.fit,val.type="MSEP")
+pcr.pred=predict(pcr.fit, X_test, ncomp =33)
+mean((as.numeric(pcr.pred)-Y_test)^2)
+pcr.pred=predict(pcr.fit, X_test, ncomp =38)
+mean((as.numeric(pcr.pred)-Y_test)^2)
+pcr.pred=predict(pcr.fit, X_test, ncomp =44)
+mean((as.numeric(pcr.pred)-Y_test)^2)
+pcr.pred=predict(pcr.fit, X_test, ncomp =1)
+mean((as.numeric(pcr.pred)-Y_test)^2)
+```
+
+# PLS
+```{r}
+set.seed (1)
+pls.fit=plsr(shares∼.-ranks, data=df_train, scale=TRUE, validation ="CV")
+summary(pls.fit)
+pls.pred=predict(pls.fit, X_test, ncomp =3)
+mean((pls.pred -Y_test)^2)
+pls.pred=predict(pls.fit, X_test, ncomp =4)
+mean((pls.pred -Y_test)^2)
+pls.pred=predict(pls.fit, X_test, ncomp =43)
+mean((pls.pred -Y_test)^2)
+```
+
+
+
+
