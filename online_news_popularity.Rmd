@@ -123,6 +123,40 @@ coef(lmod_subset, 23)
 # need to try other methods, such as ridge and lasso
 ```
 
+```{r}
+lmod_bic = lm(log(shares)~
+                num_hrefs+
+                num_self_hrefs+
+                num_imgs+
+                average_token_length+
+                num_keywords+
+                kw_min_min+
+                kw_max_min+
+                kw_avg_min+
+                kw_min_max+
+                kw_avg_max+
+                kw_min_avg+
+                kw_max_avg+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_00+
+                LDA_01+
+                LDA_04+
+                global_subjectivity+
+                min_positive_polarity+
+                title_sentiment_polarity+
+                abs_title_subjectivity+
+                abs_title_sentiment_polarity,
+              data=df_train
+              )
+
+summary(lmod_bic)
+
+lmod_pred = predict(lmod_bic, df_test)
+lmod_rmse = mean((lmod_pred-log(df_test$shares))^2) %>% sqrt()
+```
+
 # Ridge
 
 ```{r}
