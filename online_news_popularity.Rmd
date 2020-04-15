@@ -80,6 +80,15 @@ df_train = df[training, ]
 df_test = df[-training, ]
 ```
 
+# Create model matrix for Ridge, Lasso, PCR, and PLS
+```{r}
+# create model matrix
+X_train = model.matrix(log(shares)~.-ranks, df_train)[ ,-1] # remove intercept
+Y_train = log(df_train$shares)
+X_test = model.matrix(log(shares)~.-ranks, df_test)[ ,-1] # remove intercept
+Y_test = log(df_test$shares)
+```
+
 # Linear regression
 
 ```{r}
@@ -157,15 +166,44 @@ lmod_pred = predict(lmod_bic, df_test)
 lmod_rmse = mean((lmod_pred-log(df_test$shares))^2) %>% sqrt()
 ```
 
-# Ridge
+# PCR
 
 ```{r}
-# create model matrix for Ridge and Lasso
-X_train = model.matrix(log(shares)~.-ranks, df_train)[ ,-1] # remove intercept
-Y_train = log(df_train$shares)
-X_test = model.matrix(log(shares)~.-ranks, df_test)[ ,-1] # remove intercept
-Y_test = log(df_test$shares)
+set.seed (1)
+pcr.fit=pcr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
+summary (pcr.fit)
+validationplot(pcr.fit,val.type="MSEP")
+pcr.pred=predict(pcr.fit, X_test, ncomp =23)
+sqrt(mean((as.numeric(pcr.pred)-Y_test)^2))
+pcr.pred=predict(pcr.fit, X_test, ncomp =36)
+mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+pcr.pred=predict(pcr.fit, X_test, ncomp =43)
+mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+pcr.pred=predict(pcr.fit, X_test, ncomp =1) # smallest error
+mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+#pcr.m=pcr(shares~.-ranks, data=df,scale =TRUE ,ncomp =38)
+#summary(pcr.m)
 ```
+
+# PLS
+
+```{r}
+set.seed (1)
+pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
+summary(pls.fit)
+pls.pred=predict(pls.fit, X_test, ncomp =1)
+mean((pls.pred -Y_test)^2)%>% sqrt()
+pls.pred=predict(pls.fit, X_test, ncomp =7) # smallest
+mean((pls.pred -Y_test)^2)%>% sqrt()
+pls.pred=predict(pls.fit, X_test, ncomp =11)
+mean((pls.pred -Y_test)^2)%>% sqrt()
+#pls.m=plsr(shares~.-ranks, data=df,scale=TRUE ,ncomp =4)
+#summary(pls.m)
+#pls.m=plsr(shares~.-ranks, data=df,scale=TRUE ,ncomp =43)
+#summary(pls.m)
+```
+
+# Ridge
 
 ```{r}
 set.seed(1)
@@ -330,44 +368,10 @@ X_test_knn = scale(X_test)
 # Using loop to test for K takes a long time, 9 is roughly the best
 set.seed(1)
 knn_ranks = knn(X_train_knn, X_test_knn, df_train$ranks, 9)
-print("test error rate")
+print("confusion table")
 table(knn_ranks, test_ranks)
+print("test error rate")
 mean(knn_ranks!=test_ranks)
-```
-
-# PCR
-```{r}
-set.seed (1)
-pcr.fit=pcr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
-summary (pcr.fit)
-validationplot(pcr.fit,val.type="MSEP")
-pcr.pred=predict(pcr.fit, X_test, ncomp =33)
-sqrt(mean((as.numeric(pcr.pred)-Y_test)^2))
-pcr.pred=predict(pcr.fit, X_test, ncomp =38)
-mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-pcr.pred=predict(pcr.fit, X_test, ncomp =44)
-mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-pcr.pred=predict(pcr.fit, X_test, ncomp =1)
-mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-pcr.m=pcr(shares~.-ranks, data=df,scale =TRUE ,ncomp =38)
-summary(pcr.m)
-```
-
-# PLS
-```{r}
-set.seed (1)
-pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
-summary(pls.fit)
-pls.pred=predict(pls.fit, X_test, ncomp =3)
-mean((pls.pred -Y_test)^2)%>% sqrt()
-pls.pred=predict(pls.fit, X_test, ncomp =4)
-mean((pls.pred -Y_test)^2)%>% sqrt()
-pls.pred=predict(pls.fit, X_test, ncomp =43)
-mean((pls.pred -Y_test)^2)%>% sqrt()
-pls.m=plsr(shares~.-ranks, data=df,scale=TRUE ,ncomp =4)
-summary(pls.m)
-pls.m=plsr(shares~.-ranks, data=df,scale=TRUE ,ncomp =43)
-summary(pls.m)
 ```
 
 
