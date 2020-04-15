@@ -193,7 +193,7 @@ pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary(pls.fit)
 pls.pred=predict(pls.fit, X_test, ncomp =1)
 mean((pls.pred -Y_test)^2)%>% sqrt()
-pls.pred=predict(pls.fit, X_test, ncomp =7) # smallest
+pls.pred=predict(pls.fit, X_test, ncomp =7) # smallest error
 mean((pls.pred -Y_test)^2)%>% sqrt()
 pls.pred=predict(pls.fit, X_test, ncomp =11)
 mean((pls.pred -Y_test)^2)%>% sqrt()
@@ -223,14 +223,6 @@ lasso_lam = lasso_cv$lambda.min
 lasso_mod = glmnet(X_train, Y_train, alpha = 1, lambda = lasso_lam)
 lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_test)
 lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
-
-
-library(lars)
-lmodl <- lars(as.matrix(X_train),Y_train)
-plot(lmodl)
-lasso_pred <- predict(lmodl,s=lasso_lam,type="coef")$coef
-lasso_pred
-
 ```
 
 ```{r}
