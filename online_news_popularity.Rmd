@@ -58,7 +58,9 @@ df <- df %>% dplyr::select(-url, -timedelta) %>%
       shares <= median(df$shares) ~ 0
     ) %>% as_factor()
     
-  ) %>% dplyr::select(-starts_with("data_channel_is"), -starts_with("weekday_is"), -channel, -weekday)
+  ) %>% dplyr::select(-starts_with("data_channel_is"),
+                      -starts_with("weekday_is"),
+                      -channel, -weekday)
 
 # remove channel as not all categories are covered (6134 unclassified)
 # remove weekday as is_weekend variable captures this information
@@ -83,8 +85,8 @@ df_test = df[-training, ]
 ```{r}
 # linear regression
 
-plot(df$shares)   # heavily positive skewness
-stem(df$shares)
+#plot(df$shares)   # heavily positive skewness
+#stem(df$shares)
 hist(log(df$shares))
 
 
@@ -110,10 +112,10 @@ which.max(lmod_subset_summary$adjr2)
 par(mfrow = c(1, 2))
 plot(lmod_subset_summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
      main = "BIC")
-points(9,lmod_subset_summary$bic[9],col="red",cex=2,pch=20)
+points(23,lmod_subset_summary$bic[23],col="red",cex=2,pch=20)
 plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20, type = "l",
      main = "Adjusted R2")
-points(35,lmod_subset_summary$adjr2[35],col="red",cex=2,pch=20)
+points(38,lmod_subset_summary$adjr2[38],col="red",cex=2,pch=20)
 
 coef(lmod_subset, 23)
 
@@ -125,10 +127,10 @@ coef(lmod_subset, 23)
 
 ```{r}
 # create model matrix for Ridge and Lasso
-X_train = model.matrix(shares~.-ranks, df_train)[ ,-1] # remove intercept
-Y_train = df_train$shares
-X_test = model.matrix(shares~.-ranks, df_test)[ ,-1] # remove intercept
-Y_test = df_test$shares
+X_train = model.matrix(log(shares)~.-ranks, df_train)[ ,-1] # remove intercept
+Y_train = log(df_train$shares)
+X_test = model.matrix(log(shares)~.-ranks, df_test)[ ,-1] # remove intercept
+Y_test = log(df_test$shares)
 ```
 
 ```{r}
@@ -300,7 +302,7 @@ mean(knn_ranks!=test_ranks)
 # PCR
 ```{r}
 set.seed (1)
-pcr.fit=pcr(shares~.-ranks, data=df_train, scale=TRUE, validation ="CV")
+pcr.fit=pcr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary (pcr.fit)
 validationplot(pcr.fit,val.type="MSEP")
 pcr.pred=predict(pcr.fit, X_test, ncomp =33)
@@ -318,7 +320,7 @@ summary(pcr.m)
 # PLS
 ```{r}
 set.seed (1)
-pls.fit=plsr(shares~.-ranks, data=df_train, scale=TRUE, validation ="CV")
+pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary(pls.fit)
 pls.pred=predict(pls.fit, X_test, ncomp =3)
 mean((pls.pred -Y_test)^2)%>% sqrt()
