@@ -228,7 +228,8 @@ modlg <- glm(ranks~
                 min_negative_polarity+
                 title_sentiment_polarity+
                 abs_title_subjectivity+
-                abs_title_sentiment_polarity, data=df_train, family=binomial)
+                abs_title_sentiment_polarity, 
+             data=df_train, family=binomial)
 logp <- predict(modlg, df_test, type="response")
 logpp <- ifelse(logp > 0.5, 1, 0)
 table(logpp, df_test$ranks)
@@ -330,6 +331,7 @@ X_test_knn = scale(X_test)
 set.seed(1)
 knn_ranks = knn(X_train_knn, X_test_knn, df_train$ranks, 9)
 print("test error rate")
+table(knn_ranks, test_ranks)
 mean(knn_ranks!=test_ranks)
 ```
 
