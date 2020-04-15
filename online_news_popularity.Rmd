@@ -88,6 +88,8 @@ plot(df$shares)   # heavily positive skewness
 stem(df$shares)
 
 
+# cor(X_train, method = c("pearson"))
+
 lmod <- lm(shares ~ . -ranks, data=df)
 summary(lmod)
 #coef(lmod) %>% length() # of predictors including intercept
@@ -113,7 +115,7 @@ plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch 
      main = "Adjusted R2")
 points(35,lmod_subset_summary$adjr2[35],col="red",cex=2,pch=20)
 
-coef(lmod_subset, 35)
+coef(lmod_subset, 9)
 
 # the adjusted R2 is still too low, only around 2%, why?
 # need to try other methods, such as ridge and lasso
@@ -147,12 +149,16 @@ lasso_lam = lasso_cv$lambda.min
 lasso_mod = glmnet(X_train, Y_train, alpha = 1, lambda = lasso_lam)
 lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_test)
 lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
+<<<<<<< HEAD
+lasso_rmse
+=======
 
 library(lars)
 lmodl <- lars(as.matrix(X_train),Y_train)
 plot(lmodl)
 lasso_pred <- predict(lmodl,s=lasso_lam,type="coef")$coef
 lasso_pred
+>>>>>>> e6c66e7cd793bba527315865867fc5a4a9aaa941
 ```
 
 ```{r}
@@ -165,17 +171,17 @@ coef(lasso_mod)
 # use predictors chosen by Lasso
 lda_mod = lda(ranks ~ 
                 n_tokens_title+
-                n_unique_tokens+
-                n_non_stop_words+
+                n_tokens_content+
                 num_hrefs+
                 num_self_hrefs+
                 num_imgs+
-                num_videos+
                 average_token_length+
+                num_keywords+
                 kw_min_min+
                 kw_avg_min+
                 kw_min_max+
                 kw_max_max+
+                kw_avg_max+
                 kw_min_avg+
                 kw_max_avg+
                 kw_avg_avg+
@@ -186,14 +192,12 @@ lda_mod = lda(ranks ~
                 LDA_02+
                 LDA_03+
                 global_subjectivity+
-                global_rate_negative_words+
-                rate_negative_words+
-                avg_positive_polarity+
-                min_positive_polarity+
-                max_negative_polarity+
+                global_rate_positive_words+
+                min_negative_polarity+
                 title_sentiment_polarity+
                 abs_title_subjectivity+
                 abs_title_sentiment_polarity, data = df_train)
+
 #coef(lda_mod) %>% dim()
 lda_pred = predict(lda_mod, df_test)
 lda_ranks = lda_pred$class
@@ -210,17 +214,17 @@ mean(lda_ranks!= test_ranks)
 # perform LDA on the training data
 qda_mod = qda(ranks ~ 
                 n_tokens_title+
-                n_unique_tokens+
-                n_non_stop_words+
+                n_tokens_content+
                 num_hrefs+
                 num_self_hrefs+
                 num_imgs+
-                num_videos+
                 average_token_length+
+                num_keywords+
                 kw_min_min+
                 kw_avg_min+
                 kw_min_max+
                 kw_max_max+
+                kw_avg_max+
                 kw_min_avg+
                 kw_max_avg+
                 kw_avg_avg+
@@ -231,11 +235,8 @@ qda_mod = qda(ranks ~
                 LDA_02+
                 LDA_03+
                 global_subjectivity+
-                global_rate_negative_words+
-                rate_negative_words+
-                avg_positive_polarity+
-                min_positive_polarity+
-                max_negative_polarity+
+                global_rate_positive_words+
+                min_negative_polarity+
                 title_sentiment_polarity+
                 abs_title_subjectivity+
                 abs_title_sentiment_polarity, data = df_train)
