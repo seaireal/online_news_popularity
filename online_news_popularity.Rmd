@@ -13,11 +13,10 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(glmnet) # ridge and lasso
-library(pls) 
+library(pls) # pcr pls
 library(boot)
 library(leaps) # regsubset
 library(MASS)
-library(pls) # PCR PLS
 library(class) # knn
 ```
 
@@ -86,11 +85,12 @@ df_test = df[-training, ]
 
 plot(df$shares)   # heavily positive skewness
 stem(df$shares)
+hist(log(df$shares))
 
 
 # cor(X_train, method = c("pearson"))
 
-lmod <- lm(shares ~ . -ranks, data=df)
+lmod <- lm(log(shares) ~ . -ranks, data=df)
 summary(lmod)
 #coef(lmod) %>% length() # of predictors including intercept
 
@@ -115,7 +115,7 @@ plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch 
      main = "Adjusted R2")
 points(35,lmod_subset_summary$adjr2[35],col="red",cex=2,pch=20)
 
-coef(lmod_subset, 9)
+coef(lmod_subset, 23)
 
 # the adjusted R2 is still too low, only around 2%, why?
 # need to try other methods, such as ridge and lasso
