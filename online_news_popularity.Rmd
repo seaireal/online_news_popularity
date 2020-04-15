@@ -13,13 +13,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(glmnet) # ridge and lasso
-library(pls) 
+library(pls) # pcr pls
 library(boot)
 library(leaps) # regsubset
 library(MASS)
-library(pls) # PCR PLS
 library(class) # knn
-library(car)
 ```
 
 # Load data
@@ -60,7 +58,9 @@ df <- df %>% dplyr::select(-url, -timedelta) %>%
       shares <= median(df$shares) ~ 0
     ) %>% as_factor()
     
-  ) %>% dplyr::select(-starts_with("data_channel_is"), -starts_with("weekday_is"), -channel, -weekday)
+  ) %>% dplyr::select(-starts_with("data_channel_is"),
+                      -starts_with("weekday_is"),
+                      -channel, -weekday)
 
 # remove channel as not all categories are covered (6134 unclassified)
 # remove weekday as is_weekend variable captures this information
@@ -85,23 +85,15 @@ df_test = df[-training, ]
 ```{r}
 # linear regression
 
-plot(df$shares)   # heavily positive skewness
-stem(df$shares)
+#plot(df$shares)   # heavily positive skewness
+#stem(df$shares)
+hist(log(df$shares))
 
 
 # cor(X_train, method = c("pearson"))
 
-lmod <- lm(shares ~ . -ranks, data=df)
+lmod <- lm(log(shares) ~ . -ranks, data=df)
 summary(lmod)
-# Constant error: Residuals vs fitted plot
-residualPlots(lmod, ask = FALSE, layout = c(1,1))
-# Normality
-qqnorm(residuals(lmod), main='Normal Q-Q plot, Normal distribution'); qqline(residuals(lmod),col='blue')
-# Model mean structure: Partial residuals plot
-avPlots(lmod, ask = FALSE, layout = c(1,1))
-# Multicollinearity
-vif(lm(shares ~ . -ranks, data=df))
-
 #coef(lmod) %>% length() # of predictors including intercept
 
 # from the description of the predictors and the sammry of the lm, we can easily know that 
@@ -120,25 +112,59 @@ which.max(lmod_subset_summary$adjr2)
 par(mfrow = c(1, 2))
 plot(lmod_subset_summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
      main = "BIC")
-points(9,lmod_subset_summary$bic[9],col="red",cex=2,pch=20)
+points(23,lmod_subset_summary$bic[23],col="red",cex=2,pch=20)
 plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20, type = "l",
      main = "Adjusted R2")
-points(35,lmod_subset_summary$adjr2[35],col="red",cex=2,pch=20)
+points(38,lmod_subset_summary$adjr2[38],col="red",cex=2,pch=20)
 
-coef(lmod_subset, 9)
+coef(lmod_subset, 23)
 
 # the adjusted R2 is still too low, only around 2%, why?
 # need to try other methods, such as ridge and lasso
+```
+
+```{r}
+lmod_bic = lm(log(shares)~
+                num_hrefs+
+                num_self_hrefs+
+                num_imgs+
+                average_token_length+
+                num_keywords+
+                kw_min_min+
+                kw_max_min+
+                kw_avg_min+
+                kw_min_max+
+                kw_avg_max+
+                kw_min_avg+
+                kw_max_avg+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_00+
+                LDA_01+
+                LDA_04+
+                global_subjectivity+
+                min_positive_polarity+
+                title_sentiment_polarity+
+                abs_title_subjectivity+
+                abs_title_sentiment_polarity,
+              data=df_train
+              )
+
+summary(lmod_bic)
+
+lmod_pred = predict(lmod_bic, df_test)
+lmod_rmse = mean((lmod_pred-log(df_test$shares))^2) %>% sqrt()
 ```
 
 # Ridge
 
 ```{r}
 # create model matrix for Ridge and Lasso
-X_train = model.matrix(shares~.-ranks, df_train)[ ,-1] # remove intercept
-Y_train = df_train$shares
-X_test = model.matrix(shares~.-ranks, df_test)[ ,-1] # remove intercept
-Y_test = df_test$shares
+X_train = model.matrix(log(shares)~.-ranks, df_train)[ ,-1] # remove intercept
+Y_train = log(df_train$shares)
+X_test = model.matrix(log(shares)~.-ranks, df_test)[ ,-1] # remove intercept
+Y_test = log(df_test$shares)
 ```
 
 ```{r}
@@ -159,6 +185,13 @@ lasso_lam = lasso_cv$lambda.min
 lasso_mod = glmnet(X_train, Y_train, alpha = 1, lambda = lasso_lam)
 lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_test)
 lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
+
+
+library(lars)
+lmodl <- lars(as.matrix(X_train),Y_train)
+plot(lmodl)
+lasso_pred <- predict(lmodl,s=lasso_lam,type="coef")$coef
+lasso_pred
 
 ```
 
@@ -305,7 +338,7 @@ mean(knn_ranks!=test_ranks)
 # PCR
 ```{r}
 set.seed (1)
-pcr.fit=pcr(shares~.-ranks, data=df_train, scale=TRUE, validation ="CV")
+pcr.fit=pcr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary (pcr.fit)
 validationplot(pcr.fit,val.type="MSEP")
 pcr.pred=predict(pcr.fit, X_test, ncomp =33)
@@ -323,7 +356,7 @@ summary(pcr.m)
 # PLS
 ```{r}
 set.seed (1)
-pls.fit=plsr(shares~.-ranks, data=df_train, scale=TRUE, validation ="CV")
+pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary(pls.fit)
 pls.pred=predict(pls.fit, X_test, ncomp =3)
 mean((pls.pred -Y_test)^2)%>% sqrt()
