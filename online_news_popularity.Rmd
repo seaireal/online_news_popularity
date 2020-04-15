@@ -149,16 +149,14 @@ lasso_lam = lasso_cv$lambda.min
 lasso_mod = glmnet(X_train, Y_train, alpha = 1, lambda = lasso_lam)
 lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_test)
 lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
-<<<<<<< HEAD
-lasso_rmse
-=======
+
 
 library(lars)
 lmodl <- lars(as.matrix(X_train),Y_train)
 plot(lmodl)
 lasso_pred <- predict(lmodl,s=lasso_lam,type="coef")$coef
 lasso_pred
->>>>>>> e6c66e7cd793bba527315865867fc5a4a9aaa941
+
 ```
 
 ```{r}
