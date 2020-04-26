@@ -175,6 +175,7 @@ summary(lmod_bic)
 
 lmod_pred = predict(lmod_bic, df_test)
 lmod_rmse = mean((lmod_pred-log(df_test$shares))^2) %>% sqrt()
+# 1/5 of full data as test set yeilds rmse 0.8741522, comparing to now 0.8848215.
 ```
 
 # PCR
