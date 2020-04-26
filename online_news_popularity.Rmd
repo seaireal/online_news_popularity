@@ -276,6 +276,9 @@ logpp <- ifelse(logp > 0.5, 1, 0)
 table(logpp, df_test$ranks)
 # test error
 mean(logpp != df_test$ranks)
+# sensitivity
+
+# speficity
 ```
 
 # LDA
@@ -320,6 +323,9 @@ print("confusion table")
 table(lda_ranks, test_ranks)
 print("test error rate")
 mean(lda_ranks!= test_ranks)
+# sensitivity
+
+# speficity
 ```
 
 # QDA
@@ -361,6 +367,9 @@ print("confusion table")
 table(qda_ranks, test_ranks)
 print("test error rate")
 mean(qda_ranks!=test_ranks)
+# sensitivity
+
+# speficity
 ```
 # KNN
 
@@ -375,6 +384,9 @@ print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
 mean(knn_ranks!=test_ranks)
+# sensitivity
+
+# speficity
 ```
 
 # Random forest
