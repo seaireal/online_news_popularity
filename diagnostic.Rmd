@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,fig.width = 32,fig.height = 26)
 library(tidyverse)
 library(glmnet) # ridge and lasso
 library(pls) # pcr pls
@@ -18,6 +18,7 @@ library(boot)
 library(leaps) # regsubset
 library(MASS)
 library(class) # knn
+library(reshape2) # melt the correlation matrix 
 ```
 
 # Load data
@@ -74,10 +75,10 @@ df <- df %>% dplyr::select(-url, -timedelta) %>%
 ```{r}
 # split the data set into a training set and a test set
 set.seed(123)
-split_size = nrow(df)/2
-training = sample(1:nrow(df), split_size)
-df_train = df[training, ]
-df_test = df[-training, ]
+split_size = nrow(df)/5
+testing = sample(1:nrow(df), split_size)
+df_train = df[-testing, ]
+df_test = df[testing, ]
 ```
 
 # Create model matrix for Ridge, Lasso, PCR, and PLS
@@ -94,15 +95,59 @@ Y_test = log(df_test$shares)
 ```{r}
 # linear regression
 
-#plot(df$shares)   # heavily positive skewness
+# heavily positive skewness
 #stem(df$shares)
 hist(log(df$shares))
+hist(df$shares)
 
-
-# cor(X_train, method = c("pearson"))
+# correlation matrix heatmap
+cormat <- cor(X_train, method = c("pearson"))
+melted_cormat <- melt(cormat)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()+
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 5, hjust = 1))+
+ coord_fixed()
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(cormat){
+    cormat[upper.tri(cormat)] <- NA
+    return(cormat)
+  }
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+upper_tri <- get_upper_tri(cormat)
+upper_tri
+lower_tri <- get_lower_tri(cormat)
+lower_tri
+melted_upmat <- melt(upper_tri, na.rm = TRUE)
+melted_lwmat <- melt(lower_tri, na.rm = TRUE)
+ggplot(data = melted_upmat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 6, hjust = 1))+
+ coord_fixed()
+ggplot(data = melted_lwmat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 6, hjust = 1))+
+ coord_fixed()
 
 lmod <- lm(log(shares) ~ . -ranks, data=df)
 summary(lmod)
+lmod1 <- lm(shares ~ . -ranks, data=df)
+summary(lmod1)
 #coef(lmod) %>% length() # of predictors including intercept
 
 # from the description of the predictors and the sammry of the lm, we can easily know that 
