@@ -16,16 +16,27 @@ library(glmnet) # ridge and lasso
 library(pls) # pcr pls
 library(boot)
 library(leaps) # regsubset
-library(MASS)
+library(MASS) # lda qda
 library(class) # knn
+library(randomForest)
 ```
 
 # Load data
 
 ```{r}
-df = read_csv("OnlineNewsPopularity.csv")
+df0 = read_csv("OnlineNewsPopularity.csv") # unchanged
+df = read_csv("OnlineNewsPopularity.csv") # to be cleaned
 ```
 # Prepare data
+```{r}
+df0 <- df0 %>% dplyr::select(-url, -timedelta) %>% 
+  mutate(
+    ranks = case_when(
+      shares > median(df$shares) ~ 1,
+      shares <= median(df$shares) ~ 0
+    ) %>% as_factor()
+  )
+```
 
 ```{r}
 # delete 2 non-predictive variables
@@ -366,6 +377,36 @@ print("test error rate")
 mean(knn_ranks!=test_ranks)
 ```
 
+# Random forest
+```{r}
+# takes a few minutes to run
+ptm = proc.time()
+rfmod = randomForest(ranks ~ .-shares, data=df0, subset=training, importance=TRUE)
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
+```
 
+```{r}
+rfmod_ranks = predict(rfmod, newdata=df0[-training, ], type="response")
+print("confusion table")
+table(rfmod_ranks, test_ranks)
+print("test error rate")
+mean(rfmod_ranks!=test_ranks)
+```
 
+```{r}
+importance(rfmod)
+```
+
+```{r}
+varImpPlot(rfmod)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
 
