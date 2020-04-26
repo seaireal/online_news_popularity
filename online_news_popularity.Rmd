@@ -277,8 +277,9 @@ table(logpp, df_test$ranks)
 # test error
 mean(logpp != df_test$ranks)
 # sensitivity
-
+sum(logpp==1& df_test$ranks==1)/sum(df_test$ranks==1)
 # speficity
+sum(logpp==0& df_test$ranks==0)/sum(df_test$ranks==0)
 ```
 
 # LDA
@@ -324,8 +325,9 @@ table(lda_ranks, test_ranks)
 print("test error rate")
 mean(lda_ranks!= test_ranks)
 # sensitivity
-
+sum(lda_ranks==1& test_ranks==1)/sum(test_ranks==1)
 # speficity
+sum(lda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
 # QDA
