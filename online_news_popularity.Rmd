@@ -370,8 +370,9 @@ table(qda_ranks, test_ranks)
 print("test error rate")
 mean(qda_ranks!=test_ranks)
 # sensitivity
-
+sum(qda_ranks==1& test_ranks==1)/sum(test_ranks==1)
 # speficity
+sum(qda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 # KNN
 
@@ -387,8 +388,9 @@ table(knn_ranks, test_ranks)
 print("test error rate")
 mean(knn_ranks!=test_ranks)
 # sensitivity
-
+sum(knn_ranks==1& test_ranks==1)/sum(test_ranks==1)
 # speficity
+sum(knn_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
 # Random forest
