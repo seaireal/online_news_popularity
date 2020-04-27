@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,fig.width = 32,fig.height = 26)
+knitr::opts_chunk$set(echo = TRUE,fig.width = 25,fig.height = 20)
 library(tidyverse)
 library(glmnet) # ridge and lasso
 library(pls) # pcr pls
@@ -19,6 +19,7 @@ library(leaps) # regsubset
 library(MASS)
 library(class) # knn
 library(reshape2) # melt the correlation matrix 
+library(car) # vif, residual plots, partial residual plots
 ```
 
 # Load data
@@ -149,12 +150,13 @@ summary(lmod)
 lmod1 <- lm(shares ~ . -ranks, data=df)
 summary(lmod1)
 #coef(lmod) %>% length() # of predictors including intercept
-
+vif(lmod)
+vif(lmod1)
 # from the description of the predictors and the sammry of the lm, we can easily know that 
 # the model doesn't fit well at least because of the multicollinearity
 ```
 
-```{r}
+```{r echo = TRUE,fig.width = 25,fig.height = 20}
 # subset selection
 lmod_formula = formula(lmod)
 lmod_subset = regsubsets(lmod_formula, data=df, method="forward", nvmax=45)
@@ -209,6 +211,8 @@ summary(lmod_bic)
 
 lmod_pred = predict(lmod_bic, df_test)
 lmod_rmse = mean((lmod_pred-log(df_test$shares))^2) %>% sqrt()
+lmod_rmse
+vif(lmod_bic)
 ```
 
 # PCR
@@ -314,6 +318,7 @@ mean(logpp != df_test$ranks)
 sum(logpp==1& df_test$ranks==1)/sum(df_test$ranks==1)
 # speficity
 sum(logpp==0& df_test$ranks==0)/sum(df_test$ranks==0)
+vif(modlg)
 ```
 
 # LDA

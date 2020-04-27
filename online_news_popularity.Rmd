@@ -281,6 +281,7 @@ mean(logpp != df_test$ranks)
 sum(logpp==1& df_test$ranks==1)/sum(df_test$ranks==1)
 # speficity
 sum(logpp==0& df_test$ranks==0)/sum(df_test$ranks==0)
+vif(modlg)
 ```
 
 # LDA
