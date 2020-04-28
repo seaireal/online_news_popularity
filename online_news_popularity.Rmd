@@ -85,10 +85,10 @@ df <- df %>% dplyr::select(-url, -timedelta) %>%
 ```{r}
 # split the data set into a training set and a test set
 set.seed(123)
-split_size = nrow(df)/2
-training = sample(1:nrow(df), split_size)
-df_train = df[training, ]
-df_test = df[-training, ]
+split_size = nrow(df)/5
+testing = sample(1:nrow(df), split_size)
+df_train = df[-testing, ]
+df_test = df[testing, ]
 ```
 
 # Create model matrix for Ridge, Lasso, PCR, and PLS
