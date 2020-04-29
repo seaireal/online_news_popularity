@@ -14,10 +14,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(glmnet) # ridge and lasso
 library(pls) # pcr pls
-library(boot)
 library(leaps) # regsubset
 library(MASS) # lda qda
 library(class) # knn
+library(tree)
 library(randomForest)
 ```
 
@@ -395,6 +395,36 @@ sum(knn_ranks==1& test_ranks==1)/sum(test_ranks==1)
 sum(knn_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
+# Classification tree
+
+```{r}
+ptm = proc.time()
+trmod = tree(ranks ~ .-shares, data=df_train)
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
+summary(trmod)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
 # Random forest
 ```{r}
 # takes a few minutes to run
