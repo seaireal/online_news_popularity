@@ -190,8 +190,6 @@ sqrt(mean((as.numeric(pcr.pred)-Y_test)^2))
 # mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
 pcr.pred=predict(pcr.fit, X_test, ncomp =2) # smallest error
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-#pcr.m=pcr(shares~.-ranks, data=df,scale =TRUE ,ncomp =38)
-#summary(pcr.m)
 ```
 
 # PLS
