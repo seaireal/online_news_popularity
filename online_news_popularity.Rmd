@@ -234,33 +234,27 @@ coef(lasso_mod)
 # Logistic Regression
 ```{r}
 modlg <- glm(ranks~
-                n_tokens_title+
-                n_tokens_content+
                 num_hrefs+
                 num_self_hrefs+
                 num_imgs+
                 average_token_length+
                 num_keywords+
                 kw_min_min+
+                kw_max_min+
                 kw_avg_min+
                 kw_min_max+
-                kw_max_max+
                 kw_avg_max+
                 kw_min_avg+
                 kw_max_avg+
                 kw_avg_avg+
-                self_reference_min_shares+
-                self_reference_max_shares+
+                self_reference_avg_sharess+
                 is_weekend+
+                LDA_00+
                 LDA_01+
-                LDA_02+
-                LDA_03+
+                LDA_04+
                 global_subjectivity+
-                global_rate_positive_words+
-                min_negative_polarity+
-                title_sentiment_polarity+
-                abs_title_subjectivity+
-                abs_title_sentiment_polarity, 
+                min_positive_polarity+
+                title_sentiment_polarity,
              data=df_train, family=binomial)
 logp <- predict(modlg, df_test, type="response")
 logpp <- ifelse(logp > 0.5, 1, 0)
@@ -271,7 +265,8 @@ mean(logpp != df_test$ranks)
 sum(logpp==1& df_test$ranks==1)/sum(df_test$ranks==1)
 # speficity
 sum(logpp==0& df_test$ranks==0)/sum(df_test$ranks==0)
-vif(modlg)
+#vif(modlg)
+formula_lg = formula(modlg)
 ```
 
 # LDA
@@ -279,34 +274,7 @@ vif(modlg)
 ```{r}
 # perform LDA on the training data
 # use predictors chosen by Lasso
-lda_mod = lda(ranks ~ 
-                n_tokens_title+
-                n_tokens_content+
-                num_hrefs+
-                num_self_hrefs+
-                num_imgs+
-                average_token_length+
-                num_keywords+
-                kw_min_min+
-                kw_avg_min+
-                kw_min_max+
-                kw_max_max+
-                kw_avg_max+
-                kw_min_avg+
-                kw_max_avg+
-                kw_avg_avg+
-                self_reference_min_shares+
-                self_reference_max_shares+
-                is_weekend+
-                LDA_01+
-                LDA_02+
-                LDA_03+
-                global_subjectivity+
-                global_rate_positive_words+
-                min_negative_polarity+
-                title_sentiment_polarity+
-                abs_title_subjectivity+
-                abs_title_sentiment_polarity, data = df_train)
+lda_mod = lda(formula_lg, data = df_train)
 
 #coef(lda_mod) %>% dim()
 lda_pred = predict(lda_mod, df_test)
@@ -326,34 +294,7 @@ sum(lda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 
 ```{r}
 # perform LDA on the training data
-qda_mod = qda(ranks ~ 
-                n_tokens_title+
-                n_tokens_content+
-                num_hrefs+
-                num_self_hrefs+
-                num_imgs+
-                average_token_length+
-                num_keywords+
-                kw_min_min+
-                kw_avg_min+
-                kw_min_max+
-                kw_max_max+
-                kw_avg_max+
-                kw_min_avg+
-                kw_max_avg+
-                kw_avg_avg+
-                self_reference_min_shares+
-                self_reference_max_shares+
-                is_weekend+
-                LDA_01+
-                LDA_02+
-                LDA_03+
-                global_subjectivity+
-                global_rate_positive_words+
-                min_negative_polarity+
-                title_sentiment_polarity+
-                abs_title_subjectivity+
-                abs_title_sentiment_polarity, data = df_train)
+qda_mod = qda(formula_lg, data = df_train)
 qda_pred = predict(qda_mod, df_test)
 qda_ranks = qda_pred$class
 test_ranks = df_test$ranks
