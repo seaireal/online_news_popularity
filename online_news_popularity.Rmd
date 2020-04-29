@@ -320,6 +320,7 @@ sum(qda_ranks==1& test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
+
 # KNN
 
 ```{r}
