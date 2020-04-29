@@ -128,8 +128,8 @@ summary(lmod)
 
 ```{r}
 # subset selection
-lmod_formula = formula(lmod)
-lmod_subset = regsubsets(lmod_formula, data=df, method="forward", nvmax=26)
+formula_lm = formula(lmod)
+lmod_subset = regsubsets(formula_lm, data=df, method="forward", nvmax=26)
 lmod_subset_summary = summary(lmod_subset)
 
 which.min(lmod_subset_summary$bic)
@@ -235,6 +235,23 @@ lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
 
 ```{r}
 coef(lasso_mod)
+lmod_las = lm(log(shares)~
+                num_hrefs+
+                num_imgs+
+                num_keywords+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02, 
+              data=df_train)
+summary(lmod_las)
+formula_las = formula(lmod_las)
+BIC(lmod_las)
+BIC(lmod_bic)
+# forward selection gives a model with a smaller BIC than lasso although the lasso model has fewer predictors
+# the predictors selected by lasso are included in the forward selection model
+# use the forward selected predictors by bic for classification
 ```
 
 # Logistic Regression
@@ -354,9 +371,8 @@ abline(v=17, lty=2)
 ```
 
 ```{r}
-# Using loop to test for K takes a long time, 9 is roughly the best
 set.seed(1)
-knn_ranks = knn(X_train_knn, X_test_knn, df_train$ranks, 9)
+knn_ranks = knn(X_train_knn, X_test_knn, Y_train_knn, 17)
 print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
