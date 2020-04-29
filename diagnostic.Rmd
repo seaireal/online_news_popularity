@@ -450,6 +450,15 @@ print("test error rate")
 mean(knn_ranks!=test_ranks)
 ```
 
+# Classification tree
 
+```{r}
+set.seed(1)
+ptm = proc.time()
+trmod = tree(ranks ~ .-shares, data=df_train)
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
+summary(trmod)
+```
 
 
