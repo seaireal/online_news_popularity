@@ -183,14 +183,12 @@ summary (pcr.fit)
 validationplot(pcr.fit,val.type="MSEP")
 pcr.pred=predict(pcr.fit, X_test, ncomp =23)
 sqrt(mean((as.numeric(pcr.pred)-Y_test)^2))
-pcr.pred=predict(pcr.fit, X_test, ncomp =36)
+pcr.pred=predict(pcr.fit, X_test, ncomp =26)
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-pcr.pred=predict(pcr.fit, X_test, ncomp =43)
+pcr.pred=predict(pcr.fit, X_test, ncomp =2) # smallest error
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-pcr.pred=predict(pcr.fit, X_test, ncomp =1) # smallest error
+pcr.pred=predict(pcr.fit, X_test, ncomp =1) 
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-#pcr.m=pcr(shares~.-ranks, data=df,scale =TRUE ,ncomp =38)
-#summary(pcr.m)
 ```
 
 # PLS
@@ -199,16 +197,13 @@ mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
 set.seed (1)
 pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary(pls.fit)
+validationplot(pls.fit,val.type="MSEP")
 pls.pred=predict(pls.fit, X_test, ncomp =1)
 mean((pls.pred -Y_test)^2)%>% sqrt()
-pls.pred=predict(pls.fit, X_test, ncomp =7) # smallest error
+pls.pred=predict(pls.fit, X_test, ncomp =12)
 mean((pls.pred -Y_test)^2)%>% sqrt()
-pls.pred=predict(pls.fit, X_test, ncomp =11)
+pls.pred=predict(pls.fit, X_test, ncomp =14) # smallest error
 mean((pls.pred -Y_test)^2)%>% sqrt()
-#pls.m=plsr(shares~.-ranks, data=df,scale=TRUE ,ncomp =4)
-#summary(pls.m)
-#pls.m=plsr(shares~.-ranks, data=df,scale=TRUE ,ncomp =43)
-#summary(pls.m)
 ```
 
 # Ridge
@@ -246,7 +241,7 @@ lmod_las = lm(log(shares)~
                 LDA_02, 
               data=df_train)
 summary(lmod_las)
-formula_las = formula(lmod_las)
+
 BIC(lmod_las)
 BIC(lmod_bic)
 # forward selection gives a model with a smaller BIC than lasso although the lasso model has fewer predictors
