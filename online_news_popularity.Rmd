@@ -181,13 +181,14 @@ set.seed (1)
 pcr.fit=pcr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary (pcr.fit)
 validationplot(pcr.fit,val.type="MSEP")
-pcr.pred=predict(pcr.fit, X_test, ncomp =23)
+pcr.pred=predict(pcr.fit, X_test, ncomp =25)
 sqrt(mean((as.numeric(pcr.pred)-Y_test)^2))
-pcr.pred=predict(pcr.fit, X_test, ncomp =26)
-mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+# Out of bound
+# pcr.pred=predict(pcr.fit, X_test, ncomp =36)
+# mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+# pcr.pred=predict(pcr.fit, X_test, ncomp =43)
+# mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
 pcr.pred=predict(pcr.fit, X_test, ncomp =2) # smallest error
-mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-pcr.pred=predict(pcr.fit, X_test, ncomp =1) 
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
 ```
 
@@ -197,12 +198,9 @@ mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
 set.seed (1)
 pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary(pls.fit)
-validationplot(pls.fit,val.type="MSEP")
-pls.pred=predict(pls.fit, X_test, ncomp =1)
+pls.pred=predict(pls.fit, X_test, ncomp =15)  # smallest error
 mean((pls.pred -Y_test)^2)%>% sqrt()
-pls.pred=predict(pls.fit, X_test, ncomp =12)
-mean((pls.pred -Y_test)^2)%>% sqrt()
-pls.pred=predict(pls.fit, X_test, ncomp =14) # smallest error
+pls.pred=predict(pls.fit, X_test, ncomp =24)
 mean((pls.pred -Y_test)^2)%>% sqrt()
 ```
 
@@ -241,7 +239,7 @@ lmod_las = lm(log(shares)~
                 LDA_02, 
               data=df_train)
 summary(lmod_las)
-
+formula_las = formula(lmod_las)
 BIC(lmod_las)
 BIC(lmod_bic)
 # forward selection gives a model with a smaller BIC than lasso although the lasso model has fewer predictors
@@ -250,6 +248,30 @@ BIC(lmod_bic)
 ```
 
 # Logistic Regression
+```{r}
+lgmod1 <- glm(ranks~
+                num_hrefs+
+                num_imgs+
+                num_keywords+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02,
+             data=df_train, family=binomial)
+formula_lg = formula(lgmod1)
+lgmod1_pred <- predict(lgmod1, df_test, type="response")
+lgmod1_ranks <- ifelse(lgmod1_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod1_ranks, test_ranks)
+print("test error")
+mean(lgmod1_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+```
 ```{r}
 lgmod <- glm(ranks~
                 num_hrefs+
@@ -280,12 +302,12 @@ sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
-
 # LDA
 
 ```{r}
 set.seed(1)
 # perform LDA on the training data
+# use predictors chosen by Lasso
 lda_mod = lda(formula_lg, data = df_train)
 
 #coef(lda_mod) %>% dim()
