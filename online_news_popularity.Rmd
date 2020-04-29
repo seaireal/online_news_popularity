@@ -113,7 +113,7 @@ Y_test = log(df_test$shares)
 
 #plot(df$shares)   # heavily positive skewness
 #stem(df$shares)
-hist(log(df$shares))
+#hist(log(df$shares))
 
 
 # cor(X_train, method = c("pearson"))
@@ -172,7 +172,6 @@ summary(lmod_bic)
 
 lmod_pred = predict(lmod_bic, df_test)
 lmod_rmse = mean((lmod_pred-log(df_test$shares))^2) %>% sqrt()
-# 1/5 of full data as test set yeilds rmse 0.8741522, comparing to now 0.8848215.
 ```
 
 # PCR
@@ -268,7 +267,6 @@ print("sensitivity")
 sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("speficity")
 sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
-#vif(modlg)
 ```
 
 # LDA
@@ -314,9 +312,21 @@ sum(qda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 # KNN
 
 ```{r}
-set.seed(1)
 X_train_knn = scale(X_train)
 X_test_knn = scale(X_test)
+
+K = seq(1, 20, 2)
+knn_test_error = NULL
+for(k in K){
+  set.seed(1)
+  knn_mpg01 = knn(train_X, test_X, train_Y, k)
+  knn_test_error[k] = mean(knn_mpg01!=test_mpg01)
+}
+plot(knn_test_error, xlab="K", ylab="test error rate", main="KNN")
+```
+
+```{r}
+set.seed(1)
 
 # Using loop to test for K takes a long time, 9 is roughly the best
 set.seed(1)
@@ -325,9 +335,9 @@ print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
 mean(knn_ranks!=test_ranks)
-# sensitivity
+print("sensitivity")
 sum(knn_ranks==1& test_ranks==1)/sum(test_ranks==1)
-# speficity
+print("speficity")
 sum(knn_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
