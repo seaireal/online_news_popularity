@@ -286,7 +286,6 @@ sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```{r}
 set.seed(1)
 # perform LDA on the training data
-# use predictors chosen by Lasso
 lda_mod = lda(formula_lg, data = df_train)
 
 #coef(lda_mod) %>% dim()
