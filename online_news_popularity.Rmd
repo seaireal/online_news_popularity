@@ -24,7 +24,7 @@ library(randomForest)
 # Load data
 
 ```{r}
-df0 = read_csv("OnlineNewsPopularity.csv") # unchanged
+#df0 = read_csv("OnlineNewsPopularity.csv") # unchanged
 df = read_csv("OnlineNewsPopularity.csv") # to be cleaned
 ```
 # Prepare data
@@ -399,21 +399,26 @@ sum(knn_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```{r}
 # takes a few minutes to run
 ptm = proc.time()
-rfmod = randomForest(ranks ~ .-shares, data=df0, subset=training, importance=TRUE)
+rfmod = randomForest(ranks ~ .-shares, data=df_train, importance=TRUE)
 time_spent = proc.time() - ptm
 paste("Processing time:", round(time_spent[3]))
 ```
 
 ```{r}
-rfmod_ranks = predict(rfmod, newdata=df0[-training, ], type="response")
+rfmod_ranks = predict(rfmod, newdata=df_test, type="response")
 print("confusion table")
 table(rfmod_ranks, test_ranks)
 print("test error rate")
 mean(rfmod_ranks!=test_ranks)
+print("sensitivity")
+sum(rfmod_ranks==1& test_ranks==1)/sum(test_ranks==1)
+print("speficity")
+sum(rfmod_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
 ```{r}
-importance(rfmod)
+rfmod_imp = importance(rfmod) %>% as.data.frame()
+rfmod_imp[order("0"),]
 ```
 
 ```{r}
