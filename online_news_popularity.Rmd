@@ -62,11 +62,25 @@ df <- df %>% dplyr::select(-url, -timedelta) %>%
   ) %>% dplyr::select(-starts_with("data_channel_is"),
                       -starts_with("weekday_is"),
                       -starts_with("abs_"),
+                      -starts_with("kw_min"),
+                      -starts_with("kw_max"),
+                      -n_non_stop_words,
+                      -n_non_stop_unique_tokens,
+                      -num_self_hrefs,
+                      -self_reference_min_shares,
+                      -self_reference_max_shares,
+                      -rate_positive_words,
+                      -rate_negative_words,
+                      -min_positive_polarity,
+                      -max_positive_polarity,
+                      -min_negative_polarity,
+                      -max_negative_polarity,
                       -channel, -weekday)
 
 # remove channel as not all categories are covered (6134 unclassified)
 # remove weekday as is_weekend variable captures this information
 # remove abs_title_subjectivity and abs_title_sentiment_polarity (adjusted values by substracting 0.5)
+# remove min or max type of measures for predictors (keep average type instead)
 
 #table(df$ranks)
 #colnames(df)[ apply(df, 2, anyNA) ] #check NA columns
@@ -115,7 +129,7 @@ summary(lmod)
 ```{r}
 # subset selection
 lmod_formula = formula(lmod)
-lmod_subset = regsubsets(lmod_formula, data=df, method="forward", nvmax=43)
+lmod_subset = regsubsets(lmod_formula, data=df, method="forward", nvmax=26)
 lmod_subset_summary = summary(lmod_subset)
 
 which.min(lmod_subset_summary$bic)
@@ -124,12 +138,12 @@ which.max(lmod_subset_summary$adjr2)
 par(mfrow = c(1, 2))
 plot(lmod_subset_summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
      main = "BIC")
-points(21,lmod_subset_summary$bic[21],col="red",cex=2,pch=20)
+points(14,lmod_subset_summary$bic[14],col="red",cex=2,pch=20)
 plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20, type = "l",
      main = "Adjusted R2")
-points(36,lmod_subset_summary$adjr2[36],col="red",cex=2,pch=20)
+points(19,lmod_subset_summary$adjr2[19],col="red",cex=2,pch=20)
 
-coef(lmod_subset, 21)
+coef(lmod_subset, 14)
 
 # the adjusted R2 is still too low, only around 2%, why?
 # need to try other methods, such as ridge and lasso
@@ -138,25 +152,18 @@ coef(lmod_subset, 21)
 ```{r}
 lmod_bic = lm(log(shares)~
                 num_hrefs+
-                num_self_hrefs+
                 num_imgs+
                 average_token_length+
                 num_keywords+
-                kw_min_min+
-                kw_max_min+
                 kw_avg_min+
-                kw_min_max+
                 kw_avg_max+
-                kw_min_avg+
-                kw_max_avg+
                 kw_avg_avg+
                 self_reference_avg_sharess+
                 is_weekend+
-                LDA_00+
                 LDA_01+
-                LDA_04+
+                LDA_02+
+                LDA_03+
                 global_subjectivity+
-                min_positive_polarity+
                 title_sentiment_polarity,
               data=df_train
               )
@@ -233,40 +240,35 @@ coef(lasso_mod)
 
 # Logistic Regression
 ```{r}
-modlg <- glm(ranks~
+lgmod <- glm(ranks~
                 num_hrefs+
-                num_self_hrefs+
                 num_imgs+
                 average_token_length+
                 num_keywords+
-                kw_min_min+
-                kw_max_min+
                 kw_avg_min+
-                kw_min_max+
                 kw_avg_max+
-                kw_min_avg+
-                kw_max_avg+
                 kw_avg_avg+
                 self_reference_avg_sharess+
                 is_weekend+
-                LDA_00+
                 LDA_01+
-                LDA_04+
+                LDA_02+
+                LDA_03+
                 global_subjectivity+
-                min_positive_polarity+
                 title_sentiment_polarity,
              data=df_train, family=binomial)
-logp <- predict(modlg, df_test, type="response")
-logpp <- ifelse(logp > 0.5, 1, 0)
-table(logpp, df_test$ranks)
-# test error
-mean(logpp != df_test$ranks)
-# sensitivity
-sum(logpp==1& df_test$ranks==1)/sum(df_test$ranks==1)
-# speficity
-sum(logpp==0& df_test$ranks==0)/sum(df_test$ranks==0)
+formula_lg = formula(lgmod)
+lgmod_pred <- predict(lgmod, df_test, type="response")
+lgmod_ranks <- ifelse(lgmod_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod_ranks, test_ranks)
+print("test error")
+mean(lgmod_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("speficity")
+sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 #vif(modlg)
-formula_lg = formula(modlg)
 ```
 
 # LDA
@@ -279,14 +281,14 @@ lda_mod = lda(formula_lg, data = df_train)
 #coef(lda_mod) %>% dim()
 lda_pred = predict(lda_mod, df_test)
 lda_ranks = lda_pred$class
-test_ranks = df_test$ranks
+
 print("confusion table")
 table(lda_ranks, test_ranks)
 print("test error rate")
 mean(lda_ranks!= test_ranks)
-# sensitivity
+print("sensitivity")
 sum(lda_ranks==1& test_ranks==1)/sum(test_ranks==1)
-# speficity
+print("speficity")
 sum(lda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
@@ -302,9 +304,9 @@ print("confusion table")
 table(qda_ranks, test_ranks)
 print("test error rate")
 mean(qda_ranks!=test_ranks)
-# sensitivity
+print("sensitivity")
 sum(qda_ranks==1& test_ranks==1)/sum(test_ranks==1)
-# speficity
+print("speficity")
 sum(qda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 # KNN
