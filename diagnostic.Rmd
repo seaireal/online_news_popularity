@@ -177,6 +177,13 @@ coef(lmod_subset, 23)
 
 # the adjusted R2 is still too low, only around 2%, why?
 # need to try other methods, such as ridge and lasso
+lmod_formula = formula(lmod)
+lmod_subset = regsubsets(lmod_formula, data=df, method="backward", nvmax=45)
+lmod_subset_summary = summary(lmod_subset)
+
+which.min(lmod_subset_summary$bic)
+which.max(lmod_subset_summary$adjr2)
+coef(lmod_subset, 27)
 ```
 
 ```{r}
@@ -271,6 +278,21 @@ lasso_cv = cv.glmnet(X_train, Y_train, alpha = 1)
 lasso_lam = lasso_cv$lambda.min
 lasso_mod = glmnet(X_train, Y_train, alpha = 1, lambda = lasso_lam)
 lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_test)
+lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
+```
+
+```{r}
+coef(lasso_mod)
+```
+```{r}
+X_train1 = model.matrix(shares~.-ranks-n_unique_tokens-n_non_stop_words-kw_min_min-kw_max_min-kw_min_max-kw_max_max-kw_min_avg-kw_max_avg-self_reference_min_shares-self_reference_max_shares-min_positive_polarity-max_positive_polarity-min_negative_polarity-max_negative_polarity, df_train)[ ,-1]
+X_test1 = model.matrix(shares~.-ranks-n_unique_tokens-n_non_stop_words-kw_min_min-kw_max_min-kw_min_max-kw_max_max-kw_min_avg-kw_max_avg-self_reference_min_shares-self_reference_max_shares-min_positive_polarity-max_positive_polarity-min_negative_polarity-max_negative_polarity, df_test)[ ,-1]
+
+set.seed(1)
+lasso_cv = cv.glmnet(X_train1, Y_train, alpha = 1)
+lasso_lam = lasso_cv$lambda.min
+lasso_mod = glmnet(X_train1, Y_train, alpha = 1, lambda = lasso_lam)
+lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_test1)
 lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
 ```
 
