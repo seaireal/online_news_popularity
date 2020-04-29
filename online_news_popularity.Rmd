@@ -265,7 +265,7 @@ print("test error")
 mean(lgmod_ranks != test_ranks)
 print("sensitivity")
 sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
-print("speficity")
+print("specificity")
 sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
@@ -287,7 +287,7 @@ print("test error rate")
 mean(lda_ranks!= test_ranks)
 print("sensitivity")
 sum(lda_ranks==1& test_ranks==1)/sum(test_ranks==1)
-print("speficity")
+print("specificity")
 sum(lda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
@@ -306,28 +306,54 @@ print("test error rate")
 mean(qda_ranks!=test_ranks)
 print("sensitivity")
 sum(qda_ranks==1& test_ranks==1)/sum(test_ranks==1)
-print("speficity")
+print("specificity")
 sum(qda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 # KNN
 
 ```{r}
-X_train_knn = scale(X_train)
-X_test_knn = scale(X_test)
+ptm = proc.time()
+
+X_train_knn = df_train %>% dplyr::select(-shares, -ranks) %>% scale()
+X_test_knn = df_test %>% dplyr::select(-shares, -ranks) %>% scale()
+Y_train_knn = df_train$ranks
 
 K = seq(1, 20, 2)
 knn_test_error = NULL
+knn_test_sen = NULL
+knn_test_spe = NULL
+
 for(k in K){
   set.seed(1)
-  knn_mpg01 = knn(train_X, test_X, train_Y, k)
-  knn_test_error[k] = mean(knn_mpg01!=test_mpg01)
+  knn_ranks = knn(X_train_knn, X_test_knn, Y_train_knn, k)
+  knn_test_error[k] = mean(knn_ranks!=test_ranks)
+  knn_test_sen[k] = sum(knn_ranks==1& test_ranks==1)/sum(test_ranks==1)
+  knn_test_spe[k] = sum(knn_ranks==0& test_ranks==0)/sum(test_ranks==0)
 }
-plot(knn_test_error, xlab="K", ylab="test error rate", main="KNN")
+
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
 ```
 
 ```{r}
-set.seed(1)
+which.min(knn_test_error)
+which.max(knn_test_sen)
+which.max(knn_test_spe)
+# k = 17 gives the lowest test error and highest specificity
+```
 
+```{r fig.height=8, fig.width=6}
+par(mfrow=c(3,1))
+plot(knn_test_error, xlab="K", ylab="test error rate", col="red")
+abline(v=17, lty=2)
+title("KNN")
+plot(knn_test_sen, xlab="K", ylab="sensitivity", col="red")
+abline(v=15, lty=2)
+plot(knn_test_spe, xlab="K", ylab="specificity", col="red")
+abline(v=17, lty=2)
+```
+
+```{r}
 # Using loop to test for K takes a long time, 9 is roughly the best
 set.seed(1)
 knn_ranks = knn(X_train_knn, X_test_knn, df_train$ranks, 9)
