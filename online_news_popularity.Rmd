@@ -233,6 +233,7 @@ coef(lasso_mod)
 
 # Logistic Regression
 ```{r}
+set.seed(1)
 modlg <- glm(ranks~
                 num_hrefs+
                 num_self_hrefs+
@@ -272,6 +273,7 @@ formula_lg = formula(modlg)
 # LDA
 
 ```{r}
+set.seed(1)
 # perform LDA on the training data
 # use predictors chosen by Lasso
 lda_mod = lda(formula_lg, data = df_train)
@@ -293,6 +295,7 @@ sum(lda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 # QDA
 
 ```{r}
+set.seed(1)
 # perform LDA on the training data
 qda_mod = qda(formula_lg, data = df_train)
 qda_pred = predict(qda_mod, df_test)
@@ -310,6 +313,7 @@ sum(qda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 # KNN
 
 ```{r}
+set.seed(1)
 X_train_knn = scale(X_train)
 X_test_knn = scale(X_test)
 
@@ -329,6 +333,7 @@ sum(knn_ranks==0& test_ranks==0)/sum(test_ranks==0)
 # Classification tree
 
 ```{r}
+set.seed(1)
 ptm = proc.time()
 trmod = tree(ranks ~ .-shares, data=df_train)
 time_spent = proc.time() - ptm
