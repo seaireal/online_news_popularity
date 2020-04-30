@@ -487,14 +487,16 @@ bmod_impgg
 ```
 
 ```{r}
+bmod_pred = predict(bmod, newdata=df_test_b, n.trees=5000, type="response")
+bmod_ranks = ifelse(bmod_pred > 0.5, 1, 0)
 
-```
-
-```{r}
-
-```
-
-```{r}
-
+print("confusion table")
+table(bmod_ranks, test_ranks)
+print("test error rate")
+mean(bmod_ranks!=test_ranks)
+print("sensitivity")
+sum(bmod_ranks==1& test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(bmod_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
