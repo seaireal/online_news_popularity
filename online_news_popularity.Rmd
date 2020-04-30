@@ -174,6 +174,8 @@ summary(lmod_bic)
 
 lmod_pred = predict(lmod_bic, df_test)
 lmod_rmse = mean((lmod_pred-log(df_test$shares))^2) %>% sqrt()
+# test rmse in original scale
+lmod_rmse_ori = mean((exp(lmod_pred)-df_test$shares)^2) %>% sqrt()
 ```
 
 # PCR
@@ -189,8 +191,12 @@ pcr.pred=predict(pcr.fit, X_test, ncomp =18)
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
 pcr.pred=predict(pcr.fit, X_test, ncomp =1) # smallest model, not so large rmse
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+print("test rmse in original scale")
+mean((exp(as.numeric(pcr.pred))-df_test$shares)^2)%>% sqrt()
+
 pcr.pred=predict(pcr.fit, X_test, ncomp =2)
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+
 ```
 
 # PLS
@@ -201,6 +207,8 @@ pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
 summary(pls.fit)
 pls.pred=predict(pls.fit, X_test, ncomp =15)  # smallest error
 mean((pls.pred -Y_test)^2)%>% sqrt()
+print("test rmse in original scale")
+mean((exp(pls.pred) - df_test$shares)^2)%>% sqrt()
 pls.pred=predict(pls.fit, X_test, ncomp =24)
 mean((pls.pred -Y_test)^2)%>% sqrt()
 ```
@@ -214,6 +222,7 @@ ridge_lam = ridge_cv$lambda.min
 ridge_mod = glmnet(X_train, Y_train, alpha = 0, lambda = ridge_lam)
 ridge_pred = predict(ridge_mod, s=ridge_lam, newx=X_test)
 ridge_rmse = mean((ridge_pred-Y_test)^2) %>% sqrt()
+ridge_rmse_ori = mean((exp(ridge_pred)-df_test$shares)^2) %>% sqrt()
 ```
 
 # Lasso
@@ -225,6 +234,7 @@ lasso_lam = lasso_cv$lambda.min
 lasso_mod = glmnet(X_train, Y_train, alpha = 1, lambda = lasso_lam)
 lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_test)
 lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
+lasso_rmse_ori = mean((exp(lasso_pred)-df_test$shares)^2) %>% sqrt()
 ```
 
 ```{r}
@@ -298,9 +308,9 @@ table(lda_ranks, test_ranks)
 print("test error rate")
 mean(lda_ranks!= test_ranks)
 print("sensitivity")
-sum(lda_ranks==1& test_ranks==1)/sum(test_ranks==1)
+sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
-sum(lda_ranks==0& test_ranks==0)/sum(test_ranks==0)
+sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
 # QDA
@@ -317,9 +327,9 @@ table(qda_ranks, test_ranks)
 print("test error rate")
 mean(qda_ranks!=test_ranks)
 print("sensitivity")
-sum(qda_ranks==1& test_ranks==1)/sum(test_ranks==1)
+sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
-sum(qda_ranks==0& test_ranks==0)/sum(test_ranks==0)
+sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
 # KNN
@@ -430,9 +440,9 @@ table(rfmod_ranks, test_ranks)
 print("test error rate")
 mean(rfmod_ranks!=test_ranks)
 print("sensitivity")
-sum(rfmod_ranks==1& test_ranks==1)/sum(test_ranks==1)
+sum(rfmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
-sum(rfmod_ranks==0& test_ranks==0)/sum(test_ranks==0)
+sum(rfmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
 ```{r fig.height=8, fig.width=10}
@@ -495,8 +505,8 @@ table(bmod_ranks, test_ranks)
 print("test error rate")
 mean(bmod_ranks!=test_ranks)
 print("sensitivity")
-sum(bmod_ranks==1& test_ranks==1)/sum(test_ranks==1)
+sum(bmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
-sum(bmod_ranks==0& test_ranks==0)/sum(test_ranks==0)
+sum(bmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
