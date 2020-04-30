@@ -466,9 +466,10 @@ rfmod_imp = importance(rfmod, type=1) %>% as.data.frame()
 rfmod_imp = cbind(predictor = rownames(rfmod_imp), rfmod_imp)
 rownames(rfmod_imp) = 1:nrow(rfmod_imp)
 rfmod_imp = arrange(rfmod_imp, desc(MeanDecreaseAccuracy))
-rfmod_imp %>% ggplot(aes(reorder(predictor, MeanDecreaseAccuracy), MeanDecreaseAccuracy, fill=predictor)) + 
-                geom_col(show.legend=FALSE) + xlab(NULL) + ylab("mean decrease in accuracy") + coord_flip() +
-                scale_fill_hue(l=50)
+rfmod_impgg = rfmod_imp %>% ggplot(aes(reorder(predictor, MeanDecreaseAccuracy), MeanDecreaseAccuracy, fill=predictor)) + 
+                              geom_col(show.legend=FALSE) + xlab(NULL) + ylab("mean decrease in accuracy") + coord_flip() +
+                              scale_fill_hue(l=50)
+rfmod_impgg
 ```
 
 ```{r}
