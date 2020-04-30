@@ -185,12 +185,11 @@ summary (pcr.fit)
 validationplot(pcr.fit,val.type="MSEP")
 pcr.pred=predict(pcr.fit, X_test, ncomp =25)
 sqrt(mean((as.numeric(pcr.pred)-Y_test)^2))
-# Out of bound
-# pcr.pred=predict(pcr.fit, X_test, ncomp =36)
-# mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-# pcr.pred=predict(pcr.fit, X_test, ncomp =43)
-# mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
-pcr.pred=predict(pcr.fit, X_test, ncomp =2) # smallest error
+pcr.pred=predict(pcr.fit, X_test, ncomp =18)
+mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+pcr.pred=predict(pcr.fit, X_test, ncomp =1) # smallest model, not so large rmse
+mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+pcr.pred=predict(pcr.fit, X_test, ncomp =2)
 mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
 ```
 
@@ -483,12 +482,17 @@ varImpPlot(rfmod)
 # Boosting
 
 ```{r}
-
+ptm = proc.time()
+set.seed(1)
+bmod = gbm(ranks~.-shares, df_train, distribution="bernoulli", n.trees=500, interaction.depth=4, shrinkage=0.2, verbose=F)
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
 ```
 
 
 ```{r}
-
+summary(bmod)
+plot(bmod, i="kw_avg_avg")
 ```
 
 ```{r}
