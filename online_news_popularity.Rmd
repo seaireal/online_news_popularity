@@ -357,12 +357,12 @@ which.max(knn_test_spe)
 
 ```{r fig.height=8, fig.width=6}
 par(mfrow=c(3,1), mar=c(5,5,5,5))
-plot(knn_test_error, xlab=NA, ylab="test error rate", col="red", cex=2, lwd=2, cex.lab=2)
+plot(knn_test_error, xlab=NA, ylab="test error rate", col="red", cex=1.5, lwd=2, cex.lab=2)
 abline(v=17, lty=2)
 title("KNN", cex.main=2)
-plot(knn_test_sen, xlab=NA, ylab="sensitivity", col="blue", cex=2, lwd=2, cex.lab=2)
+plot(knn_test_sen, xlab=NA, ylab="sensitivity", col="blue", cex=1.5, lwd=2, cex.lab=2)
 abline(v=15, lty=2)
-plot(knn_test_spe, xlab="K", ylab="specificity", col="purple", cex=2, lwd=2, cex.lab=2)
+plot(knn_test_spe, xlab="K", ylab="specificity", col="purple", cex=1.5, lwd=2, cex.lab=2)
 abline(v=17, lty=2)
 ```
 
@@ -375,7 +375,7 @@ print("test error rate")
 mean(knn_ranks!=test_ranks)
 print("sensitivity")
 sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
-print("speficity")
+print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
@@ -399,7 +399,7 @@ print("test error rate")
 mean(trmod_ranks!=test_ranks)
 print("sensitivity")
 sum(trmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
-print("speficity")
+print("specificity")
 sum(trmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
@@ -431,7 +431,7 @@ print("test error rate")
 mean(rfmod_ranks!=test_ranks)
 print("sensitivity")
 sum(rfmod_ranks==1& test_ranks==1)/sum(test_ranks==1)
-print("speficity")
+print("specificity")
 sum(rfmod_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
