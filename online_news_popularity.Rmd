@@ -466,14 +466,30 @@ paste("Processing time:", round(time_spent[3]))
 ```
 
 
-```{r}
-summary(bmod)
-plot(bmod, i="kw_avg_avg")
+```{r fig.height=8, fig.width=10}
+#summary(bmod)
+#plot(bmod, i="kw_avg_avg")
+#plot(bmod, i="is_weekend")
+bmod_imp = summary(bmod)
+
+#bmod_imp = cbind(predictor = rownames(bmod_imp), bmod_imp)
+#rownames(bmod_imp) = 1:nrow(bmod_imp)
+
+bmod_imp = bmod_imp %>% rename("predictor"="var", "rel_inf" = "rel.inf")
+
+bmod_impgg = ggplot(bmod_imp, aes(reorder(predictor, rel_inf), rel_inf, fill=rel_inf)) + 
+                              geom_col() + xlab(NULL) + ylab("relative influence") + coord_flip() +
+                              scale_fill_continuous(name=NULL) + theme_classic() +
+                              theme(text=element_text(size=18), legend.position=c(0.9, 0.2))
+bmod_impgg
+
+#ggsave("bmod_impgg.jpeg", width=10, height=8, units="in", dpi=300)
 ```
 
 ```{r}
 
 ```
+
 ```{r}
 
 ```
