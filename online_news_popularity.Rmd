@@ -12,6 +12,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(ggthemes)
 library(glmnet) # ridge and lasso
 library(pls) # pcr pls
 library(leaps) # regsubset
@@ -19,6 +20,7 @@ library(MASS) # lda qda
 library(class) # knn
 library(tree)
 library(randomForest)
+library(gbm) # boosting
 ```
 
 # Load data
@@ -248,7 +250,9 @@ BIC(lmod_bic)
 ```
 
 # Logistic Regression
+
 ```{r}
+# use lasso predictors
 lgmod1 <- glm(ranks~
                  num_hrefs+
                 num_imgs+
@@ -278,7 +282,9 @@ sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
+
 ```{r}
+# use forward selection predictors
 lgmod <- glm(ranks~
                 num_hrefs+
                 num_imgs+
@@ -348,6 +354,7 @@ sum(qda_ranks==1& test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
+
 # KNN
 
 ```{r}
@@ -366,8 +373,8 @@ for(k in K){
   set.seed(1)
   knn_ranks = knn(X_train_knn, X_test_knn, Y_train_knn, k)
   knn_test_error[k] = mean(knn_ranks!=test_ranks)
-  knn_test_sen[k] = sum(knn_ranks==1& test_ranks==1)/sum(test_ranks==1)
-  knn_test_spe[k] = sum(knn_ranks==0& test_ranks==0)/sum(test_ranks==0)
+  knn_test_sen[k] = sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+  knn_test_spe[k] = sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 }
 
 time_spent = proc.time() - ptm
@@ -383,12 +390,12 @@ which.max(knn_test_spe)
 
 ```{r fig.height=8, fig.width=6}
 par(mfrow=c(3,1))
-plot(knn_test_error, xlab="K", ylab="test error rate", col="red")
+plot(knn_test_error, xlab="K", ylab="test error rate", col="red", cex=2, lwd=2)
 abline(v=17, lty=2)
 title("KNN")
-plot(knn_test_sen, xlab="K", ylab="sensitivity", col="red")
+plot(knn_test_sen, xlab="K", ylab="sensitivity", col="blue", cex=2, lwd=2)
 abline(v=15, lty=2)
-plot(knn_test_spe, xlab="K", ylab="specificity", col="red")
+plot(knn_test_spe, xlab="K", ylab="specificity", col="purple", cex=2, lwd=2)
 abline(v=17, lty=2)
 ```
 
@@ -400,45 +407,49 @@ table(knn_ranks, test_ranks)
 print("test error rate")
 mean(knn_ranks!=test_ranks)
 print("sensitivity")
-sum(knn_ranks==1& test_ranks==1)/sum(test_ranks==1)
+sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("speficity")
-sum(knn_ranks==0& test_ranks==0)/sum(test_ranks==0)
+sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
 # Classification tree
 
 ```{r}
+# use all predictors
 set.seed(1)
 ptm = proc.time()
-trmod = tree(ranks ~ .-shares, data=df_train)
+trmod = tree(ranks~.-shares, data=df_train)
 time_spent = proc.time() - ptm
 paste("Processing time:", round(time_spent[3]))
 summary(trmod)
 ```
 
 ```{r}
-
+trmod_ranks = predict(trmod, df_test, type="class")
+print("confusion table")
+table(trmod_ranks, test_ranks)
+print("test error rate")
+mean(trmod_ranks!=test_ranks)
+print("sensitivity")
+sum(trmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("speficity")
+sum(trmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
 ```{r}
-
+plot(trmod)
+text(trmod, pretty=0)
 ```
 
 ```{r}
-
+set.seed(1)
+trmod_cv = cv.tree(trmod)
+trmod_cv
 ```
 
-
-```{r}
-
-```
-
-```{r}
-
-```
 # Random forest
 ```{r}
-# takes a few minutes to run
+# use all predictors
 ptm = proc.time()
 rfmod = randomForest(ranks ~ .-shares, data=df_train, importance=TRUE)
 time_spent = proc.time() - ptm
@@ -457,15 +468,38 @@ print("speficity")
 sum(rfmod_ranks==0& test_ranks==0)/sum(test_ranks==0)
 ```
 
-```{r}
-rfmod_imp = importance(rfmod) %>% as.data.frame()
-rfmod_imp[order("0"),]
+```{r fig.height=8, fig.width=10}
+rfmod_imp = importance(rfmod, type=1) %>% as.data.frame()
+rfmod_imp = cbind(predictor = rownames(rfmod_imp), rfmod_imp)
+rownames(rfmod_imp) = 1:nrow(rfmod_imp)
+rfmod_imp = arrange(rfmod_imp, desc(MeanDecreaseAccuracy))
+rfmod_impgg = rfmod_imp %>% ggplot(aes(reorder(predictor, MeanDecreaseAccuracy), MeanDecreaseAccuracy, fill=predictor)) + 
+                              geom_col(show.legend=FALSE) + xlab(NULL) + ylab("mean decrease in accuracy") + coord_flip() +
+                              scale_fill_hue(l=50) + theme_classic() +
+                              theme(text = element_text(size=18))
+rfmod_impgg
+
+#ggsave("rfmod_impgg.jpeg", width=10, height=8, units="in", dpi=300)
 ```
 
 ```{r}
 varImpPlot(rfmod)
 ```
 
+# Boosting
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
 ```{r}
 
 ```
