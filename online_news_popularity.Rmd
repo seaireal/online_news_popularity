@@ -457,8 +457,10 @@ varImpPlot(rfmod)
 
 ```{r}
 ptm = proc.time()
+df_train_b = df_train %>% dplyr::select(-shares) %>% mutate(ranks=as.numeric(levels(ranks))[ranks])
+df_test_b = df_test %>% dplyr::select(-shares) %>% mutate(ranks=as.numeric(levels(ranks))[ranks])
 set.seed(1)
-bmod = gbm(ranks~.-shares, df_train, distribution="bernoulli", n.trees=5000, interaction.depth=4, shrinkage=0.2, verbose=F)
+bmod = gbm(ranks~., df_train_b, distribution="bernoulli", n.trees=5000, interaction.depth=4)
 time_spent = proc.time() - ptm
 paste("Processing time:", round(time_spent[3]))
 ```
