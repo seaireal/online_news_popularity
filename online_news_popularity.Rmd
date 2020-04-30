@@ -356,13 +356,13 @@ which.max(knn_test_spe)
 ```
 
 ```{r fig.height=8, fig.width=6}
-par(mfrow=c(3,1))
-plot(knn_test_error, xlab="K", ylab="test error rate", col="red", cex=2, lwd=2)
+par(mfrow=c(3,1), mar=c(5,5,5,5))
+plot(knn_test_error, xlab=NA, ylab="test error rate", col="red", cex=2, lwd=2, cex.lab=2)
 abline(v=17, lty=2)
-title("KNN")
-plot(knn_test_sen, xlab="K", ylab="sensitivity", col="blue", cex=2, lwd=2)
+title("KNN", cex.main=2)
+plot(knn_test_sen, xlab=NA, ylab="sensitivity", col="blue", cex=2, lwd=2, cex.lab=2)
 abline(v=15, lty=2)
-plot(knn_test_spe, xlab="K", ylab="specificity", col="purple", cex=2, lwd=2)
+plot(knn_test_spe, xlab="K", ylab="specificity", col="purple", cex=2, lwd=2, cex.lab=2)
 abline(v=17, lty=2)
 ```
 
