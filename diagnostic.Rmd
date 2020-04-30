@@ -487,9 +487,42 @@ sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
+
+
+```{r}
+# use forward selection predictors
+lgmod1 <- glm(ranks~
+                num_hrefs+
+                num_imgs+
+                average_token_length+
+                num_keywords+
+                kw_avg_min+
+                kw_avg_max+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02+
+                LDA_03+
+                global_subjectivity+
+                title_sentiment_polarity,
+             data=df_train, family="binomial")
+formula_lg = formula(lgmod1)
+lgmod1_pred <- predict(lgmod1, df_test, type="response")
+lgmod1_ranks <- ifelse(lgmod1_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod1_ranks, test_ranks)
+print("test error")
+mean(lgmod1_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+library(lmtest)
+lmtest::lrtest(lgmod,lgmod1)
 ```
-
-
 
 X_train_knn = df_train %>% dplyr::select(-shares, -ranks,-n_tokens_title,-n_tokens_content,-n_unique_tokens,-num_videos,-average_token_length,-kw_avg_min,-kw_avg_max,-LDA_00,-LDA_03,-LDA_04,-global_subjectivity,-global_sentiment_polarity,-global_rate_positive_words,-global_rate_negative_words,-avg_positive_polarity,-avg_negative_polarity,-title_subjectivity,-title_sentiment_polarity) %>% scale()
 X_test_knn = df_test %>% dplyr::select(-shares, -ranks,-n_tokens_title,-n_tokens_content,-n_unique_tokens,-num_videos,-average_token_length,-kw_avg_min,-kw_avg_max,-LDA_00,-LDA_03,-LDA_04,-global_subjectivity,-global_sentiment_polarity,-global_rate_positive_words,-global_rate_negative_words,-avg_positive_polarity,-avg_negative_polarity,-title_subjectivity,-title_sentiment_polarity) %>% scale()
