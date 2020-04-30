@@ -458,7 +458,7 @@ varImpPlot(rfmod)
 ```{r}
 ptm = proc.time()
 set.seed(1)
-bmod = gbm(ranks~.-shares, df_train, distribution="bernoulli", n.trees=500, interaction.depth=4, shrinkage=0.2, verbose=F)
+bmod = gbm(ranks~.-shares, df_train, distribution="bernoulli", n.trees=5000, interaction.depth=4, shrinkage=0.2, verbose=F)
 time_spent = proc.time() - ptm
 paste("Processing time:", round(time_spent[3]))
 ```
