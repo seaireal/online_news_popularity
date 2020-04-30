@@ -462,9 +462,9 @@ summary(trmod)
 ```
 
 ```{r}
-# lasso coef
+# use lasso coefficients
 set.seed(1)
-lgmod <- glm(ranks~
+lgmod1 <- glm(ranks~
                 num_hrefs+
                 num_imgs+
                 num_keywords+
@@ -474,24 +474,24 @@ lgmod <- glm(ranks~
                 LDA_01+
                 LDA_02,
              data=df_train, family="binomial")
-formula_lg = formula(lgmod)
-lgmod_pred <- predict(lgmod, df_test, type="response")
-lgmod_ranks <- ifelse(lgmod_pred > 0.5, 1, 0)
+formula_lg = formula(lgmod1)
+lgmod1_pred <- predict(lgmod1, df_test, type="response")
+lgmod1_ranks <- ifelse(lgmod1_pred > 0.5, 1, 0)
 test_ranks = df_test$ranks
 print("confusion table")
-table(lgmod_ranks, test_ranks)
+table(lgmod1_ranks, test_ranks)
 print("test error")
-mean(lgmod_ranks != test_ranks)
+mean(lgmod1_ranks != test_ranks)
 print("sensitivity")
-sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
-sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
 
 ```{r}
 # use forward selection predictors
-lgmod1 <- glm(ranks~
+lgmod <- glm(ranks~
                 num_hrefs+
                 num_imgs+
                 average_token_length+
@@ -507,18 +507,18 @@ lgmod1 <- glm(ranks~
                 global_subjectivity+
                 title_sentiment_polarity,
              data=df_train, family="binomial")
-formula_lg = formula(lgmod1)
-lgmod1_pred <- predict(lgmod1, df_test, type="response")
-lgmod1_ranks <- ifelse(lgmod1_pred > 0.5, 1, 0)
+formula_lg = formula(lgmod)
+lgmod_pred <- predict(lgmod, df_test, type="response")
+lgmod_ranks <- ifelse(lgmod_pred > 0.5, 1, 0)
 test_ranks = df_test$ranks
 print("confusion table")
-table(lgmod1_ranks, test_ranks)
+table(lgmod_ranks, test_ranks)
 print("test error")
-mean(lgmod1_ranks != test_ranks)
+mean(lgmod_ranks != test_ranks)
 print("sensitivity")
-sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
-sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
 library(lmtest)
 lmtest::lrtest(lgmod,lgmod1)
