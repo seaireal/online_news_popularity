@@ -440,10 +440,10 @@ rfmod_imp = importance(rfmod, type=1) %>% as.data.frame()
 rfmod_imp = cbind(predictor = rownames(rfmod_imp), rfmod_imp)
 rownames(rfmod_imp) = 1:nrow(rfmod_imp)
 rfmod_imp = arrange(rfmod_imp, desc(MeanDecreaseAccuracy))
-rfmod_impgg = rfmod_imp %>% ggplot(aes(reorder(predictor, MeanDecreaseAccuracy), MeanDecreaseAccuracy, fill=predictor)) + 
-                              geom_col(show.legend=FALSE) + xlab(NULL) + ylab("mean decrease in accuracy") + coord_flip() +
-                              scale_fill_hue(l=50) + theme_classic() +
-                              theme(text = element_text(size=18))
+rfmod_impgg = ggplot(rfmod_imp, aes(reorder(predictor, MeanDecreaseAccuracy), MeanDecreaseAccuracy, fill=MeanDecreaseAccuracy)) + 
+                              geom_col() + xlab(NULL) + ylab("mean decrease in accuracy") + coord_flip() +
+                              scale_fill_continuous(name=NULL) + theme_classic() +
+                              theme(text=element_text(size=18), legend.position=c(0.9, 0.2))
 rfmod_impgg
 
 #ggsave("rfmod_impgg.jpeg", width=10, height=8, units="in", dpi=300)
