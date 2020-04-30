@@ -250,14 +250,20 @@ BIC(lmod_bic)
 # Logistic Regression
 ```{r}
 lgmod1 <- glm(ranks~
-                num_hrefs+
+                 num_hrefs+
                 num_imgs+
+                average_token_length+
                 num_keywords+
+                kw_avg_min+
+                kw_avg_max+
                 kw_avg_avg+
                 self_reference_avg_sharess+
                 is_weekend+
                 LDA_01+
-                LDA_02,
+                LDA_02+
+                LDA_03+
+                global_subjectivity+
+                title_sentiment_polarity,
              data=df_train, family=binomial)
 formula_lg = formula(lgmod1)
 lgmod1_pred <- predict(lgmod1, df_test, type="response")
