@@ -21,6 +21,7 @@ library(class) # knn
 library(tree)
 library(randomForest)
 library(gbm) # boosting
+library(boot) # cross validation
 ```
 
 # Load data
@@ -258,6 +259,39 @@ BIC(lmod_bic)
 # use the forward selected predictors by bic for classification
 ```
 
+# Cross-validate three model
+```{r}
+print(cv.glm(data=df_train,glm(log(shares)~
+                num_hrefs+
+                num_imgs+
+                num_keywords+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02, 
+              data=df_train), K=5)$delta[1])
+
+print(cv.glm(data=df_train,glm(log(shares)~
+                num_hrefs+
+                num_imgs+
+                average_token_length+
+                num_keywords+
+                kw_avg_min+
+                kw_avg_max+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02+
+                LDA_03+
+                global_subjectivity+
+                title_sentiment_polarity,
+              data=df_train), K=5)$delta[1])
+
+print(cv.glm(data=df_train,glm(log(shares)~.,
+              data=df_train), K=5)$delta[1])
+```
 # Logistic Regression
 ```{r}
 # use lasso coefficients
