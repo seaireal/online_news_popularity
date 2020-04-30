@@ -688,5 +688,8 @@ print("sensitivity")
 sum(bmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(bmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+# auc value
+gbm.roc.area(test_ranks, bmod_ranks)
 ```
 
