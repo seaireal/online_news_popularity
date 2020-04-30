@@ -22,6 +22,7 @@ library(tree)
 library(randomForest)
 library(gbm) # boosting
 library(boot) # cross validation
+library(car) # vif, residual plots, partial residual plots
 ```
 
 # Load data
@@ -259,7 +260,6 @@ BIC(lmod_bic)
 # use the forward selected predictors by bic for classification
 ```
 
-
 # Logistic Regression
 ```{r}
 # use all coefficients
@@ -277,6 +277,7 @@ print("sensitivity")
 sum(lgmod2_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod2_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+vif(lgmod2)
 ```
 
 ```{r}

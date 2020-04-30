@@ -541,6 +541,88 @@ sum(lgmod2_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod2_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
+```{r}
+# use all coefficients - non-significantt collinearity
+set.seed(1)
+lgmod3 <- glm(ranks~ 
+                n_tokens_title+
+                n_unique_tokens+
+                num_hrefs+num_imgs+
+                num_videos+
+                average_token_length+
+                num_keywords+
+                kw_avg_min+
+                kw_avg_max+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_00+
+                LDA_01+
+                LDA_02+
+                LDA_03+
+                LDA_04+
+                global_subjectivity+
+                global_sentiment_polarity+
+                avg_positive_polarity+
+                avg_negative_polarity+
+                title_subjectivity+
+                title_sentiment_polarity,data=df_train, family="binomial")
+formula_lg = formula(lgmod3)
+lgmod3_pred <- predict(lgmod3, df_test, type="response")
+lgmod3_ranks <- ifelse(lgmod3_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod3_ranks, test_ranks)
+print("test error")
+mean(lgmod3_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod3_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod3_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+lmtest::lrtest(lgmod2,lgmod3)
+vif(lgmod3)
+```
+
+```{r}
+# use all coefficients - collinearity
+set.seed(1)
+lgmod4 <- glm(ranks~ 
+                n_tokens_title+
+                n_unique_tokens+
+                num_hrefs+num_imgs+
+                num_videos+
+                average_token_length+
+                num_keywords+
+                kw_avg_min+
+                kw_avg_max+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02+
+                LDA_03+
+                LDA_04+
+                global_subjectivity+
+                global_sentiment_polarity+
+                avg_positive_polarity+
+                avg_negative_polarity+
+                title_subjectivity+
+                title_sentiment_polarity,data=df_train, family="binomial")
+formula_lg = formula(lgmod4)
+lgmod4_pred <- predict(lgmod4, df_test, type="response")
+lgmod4_ranks <- ifelse(lgmod4_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod4_ranks, test_ranks)
+print("test error")
+mean(lgmod4_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod4_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod4_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+lmtest::lrtest(lgmod3,lgmod4)
+vif(lgmod4)
+```
 
 # Cross-validate three model
 ```{r}
@@ -576,11 +658,20 @@ print(cv.glm(data=df_train,glm(log(shares)~.,
               data=df_train), K=5)$delta[1])
 ```
 
+# KNN df
+```{r}
+# use lasso predictors
 X_train_knn = df_train %>% dplyr::select(-shares, -ranks,-n_tokens_title,-n_tokens_content,-n_unique_tokens,-num_videos,-average_token_length,-kw_avg_min,-kw_avg_max,-LDA_00,-LDA_03,-LDA_04,-global_subjectivity,-global_sentiment_polarity,-global_rate_positive_words,-global_rate_negative_words,-avg_positive_polarity,-avg_negative_polarity,-title_subjectivity,-title_sentiment_polarity) %>% scale()
 X_test_knn = df_test %>% dplyr::select(-shares, -ranks,-n_tokens_title,-n_tokens_content,-n_unique_tokens,-num_videos,-average_token_length,-kw_avg_min,-kw_avg_max,-LDA_00,-LDA_03,-LDA_04,-global_subjectivity,-global_sentiment_polarity,-global_rate_positive_words,-global_rate_negative_words,-avg_positive_polarity,-avg_negative_polarity,-title_subjectivity,-title_sentiment_polarity) %>% scale()
 Y_train_knn = df_train$ranks
 
-
+# use forward selection predictors
 X_train_knn = df_train %>% dplyr::select(-shares, -ranks,-n_tokens_title,-n_tokens_content,-n_unique_tokens,-num_videos,-LDA_00,-LDA_04,-global_sentiment_polarity,-global_rate_positive_words,-global_rate_negative_words,-avg_positive_polarity,-avg_negative_polarity,-title_subjectivity) %>% scale()
-X_test_knn = df_test %>% dplyr::select(-shares, -ranks,-n_tokens_title,-n_tokens_content,-n_unique_tokens,-num_videos,-LDA_00,-LDA_04,,-global_sentiment_polarity,-global_rate_positive_words,-global_rate_negative_words,-avg_positive_polarity,-avg_negative_polarity,-title_subjectivity) %>% scale()
+X_test_knn = df_test %>% dplyr::select(-shares, -ranks,-n_tokens_title,-n_tokens_content,-n_unique_tokens,-num_videos,-LDA_00,-LDA_04,-global_sentiment_polarity,-global_rate_positive_words,-global_rate_negative_words,-avg_positive_polarity,-avg_negative_polarity,-title_subjectivity) %>% scale()
 Y_train_knn = df_train$ranks
+
+# use all coefficients - collinearity
+X_train_knn = df_train %>% dplyr::select(-shares, -ranks,-n_tokens_content,-global_rate_positive_words,-global_rate_negative_words,-LDA_00) %>% scale()
+X_test_knn = df_test %>% dplyr::select(-shares, -ranks,-n_tokens_content,-global_rate_positive_words,-global_rate_negative_words,-LDA_00) %>% scale()
+Y_train_knn = df_train$ranks
+```
