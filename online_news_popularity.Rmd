@@ -465,10 +465,8 @@ auc(rocmod_nonsigcol)
 auc(rocmod_col)
 
 library(lmtest)
+lmtest::lrtest(lgmod,lgmod4)
 lmtest::lrtest(lgmod,lgmod1)
-lmtest::lrtest(lgmod,lgmod2)
-lmtest::lrtest(lgmod1,lgmod2)
-lmtest::lrtest(lgmod3,lgmod2)
 lmtest::lrtest(lgmod4,lgmod2)
 ```
 # LDA
@@ -491,6 +489,9 @@ print("sensitivity")
 sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+lda_ranks=lda_ranks%>%as.numeric()
+ldaroc <- roc(test_ranks,lda_ranks, levels = c(0, 1), direction = "<")
+auc(ldaroc)
 ```
 
 # QDA
@@ -510,6 +511,9 @@ print("sensitivity")
 sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+qda_ranks=qda_ranks%>%as.numeric()
+qdaroc <- roc(test_ranks,qda_ranks, levels = c(0, 1), direction = "<")
+auc(qdaroc)
 ```
 
 # KNN
@@ -567,6 +571,9 @@ print("sensitivity")
 sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+knn_ranks=knn_ranks%>%as.numeric()
+knnroc <- roc(test_ranks,knn_ranks, levels = c(0, 1), direction = "<")
+auc(knnroc)
 ```
 
 # Classification tree
@@ -591,6 +598,9 @@ print("sensitivity")
 sum(trmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(trmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+trmod_ranks=trmod_ranks%>%as.numeric()
+trroc <- roc(test_ranks,trmod_ranks, levels = c(0, 1), direction = "<")
+auc(trroc)
 ```
 
 ```{r}
@@ -623,6 +633,9 @@ print("sensitivity")
 sum(rfmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(rfmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+rfmod_ranks=rfmod_ranks%>%as.numeric()
+rfroc <- roc(test_ranks,rfmod_ranks, levels = c(0, 1), direction = "<")
+auc(rfroc)
 ```
 
 ```{r fig.height=8, fig.width=10}

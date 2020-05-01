@@ -624,6 +624,27 @@ lmtest::lrtest(lgmod3,lgmod4)
 vif(lgmod4)
 ```
 
+# ROC AUC
+```{r}
+rocmod_for <- roc(test_ranks,lgmod_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_las <- roc(test_ranks,lgmod1_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_full <- roc(test_ranks,lgmod2_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_nonsigcol <- roc(test_ranks,lgmod3_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_col <- roc(test_ranks,lgmod4_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
+
+plot(rocmod_for)
+plot(rocmod_las)
+plot(rocmod_full)
+plot(rocmod_nonsigcol)
+plot(rocmod_col)
+
+auc(rocmod_for)
+auc(rocmod_las)
+auc(rocmod_full)
+auc(rocmod_nonsigcol)
+auc(rocmod_col)
+```
+
 # Cross-validate three model
 ```{r}
 print(cv.glm(data=df_train,glm(log(shares)~
