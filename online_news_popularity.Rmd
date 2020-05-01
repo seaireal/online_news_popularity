@@ -24,7 +24,7 @@ library(gbm) # boosting
 library(boot) # cross validation
 library(car) # vif, residual plots, partial residual plots
 library (ROCR) 
-library (pROC)# ROC AUC plot
+library (pROC) # ROC AUC plot
 ```
 
 # Load data
@@ -507,6 +507,7 @@ print("sensitivity")
 sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+# auc
 lda_ranks=lda_ranks%>%as.numeric()
 ldaroc <- roc(test_ranks,lda_ranks, levels = c(0, 1), direction = "<")
 auc(ldaroc)
@@ -529,6 +530,7 @@ print("sensitivity")
 sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+# auc
 qda_ranks=qda_ranks%>%as.numeric()
 qdaroc <- roc(test_ranks,qda_ranks, levels = c(0, 1), direction = "<")
 auc(qdaroc)
@@ -589,6 +591,7 @@ print("sensitivity")
 sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+# auc
 knn_ranks=knn_ranks%>%as.numeric()
 knnroc <- roc(test_ranks,knn_ranks, levels = c(0, 1), direction = "<")
 auc(knnroc)
@@ -616,6 +619,8 @@ print("sensitivity")
 sum(trmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(trmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+# auc
 trmod_ranks=trmod_ranks%>%as.numeric()
 trroc <- roc(test_ranks,trmod_ranks, levels = c(0, 1), direction = "<")
 auc(trroc)
@@ -658,6 +663,10 @@ rfmod_pred_auc = prediction(rfmod_pred[,2], test_ranks)
 performance(rfmod_pred_auc, "auc")@y.values[[1]]
 
 # another way of calcluating auc
+rfmod_roc = roc(test_ranks, rfmod_pred[,2])
+auc(rfmod_roc)
+
+# shanshan
 rfmod_ranks=rfmod_ranks%>%as.numeric()
 rfroc <- roc(test_ranks,rfmod_ranks, levels = c(0, 1), direction = "<")
 auc(rfroc)
