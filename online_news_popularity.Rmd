@@ -24,7 +24,7 @@ library(gbm) # boosting
 library(boot) # cross validation
 library(car) # vif, residual plots, partial residual plots
 library (ROCR) 
-library (pROC)# ROC AUC plot
+library (pROC) # ROC AUC plot
 ```
 
 # Load data
@@ -640,6 +640,10 @@ rfmod_pred_auc = prediction(rfmod_pred[,2], test_ranks)
 performance(rfmod_pred_auc, "auc")@y.values[[1]]
 
 # another way of calcluating auc
+rfmod_roc = roc(test_ranks, rfmod_pred[,2])
+auc(rfmod_roc)
+
+# shanshan
 rfmod_ranks=rfmod_ranks%>%as.numeric()
 rfroc <- roc(test_ranks,rfmod_ranks, levels = c(0, 1), direction = "<")
 auc(rfroc)
