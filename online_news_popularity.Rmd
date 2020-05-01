@@ -623,6 +623,11 @@ print("sensitivity")
 sum(rfmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(rfmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+# auc
+rfmod_pred = predict(rfmod, newdata=df_test, type="prob")
+rfmod_pred_auc = prediction(rfmod_pred[,2], test_ranks)
+performance(rfmod_pred_auc, "auc")@y.values[[1]]
 ```
 
 ```{r fig.height=8, fig.width=10}
