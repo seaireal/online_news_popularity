@@ -464,6 +464,24 @@ auc(rocmod_full)
 auc(rocmod_nonsigcol)
 auc(rocmod_col)
 
+# another way of auc
+lgmod_pred = predict(lgmod, newdata=df_test)
+lgmod_pred_auc = prediction(lgmod_pred, test_ranks)
+performance(lgmod_pred_auc, "auc")@y.values[[1]]
+
+lgmod1_pred = predict(lgmod1, newdata=df_test)
+lgmod1_pred_auc = prediction(lgmod1_pred, test_ranks)
+performance(lgmod1_pred_auc, "auc")@y.values[[1]]
+
+lgmod2_pred = predict(lgmod2, newdata=df_test)
+lgmod2_pred_auc = prediction(lgmod2_pred, test_ranks)
+performance(lgmod2_pred_auc, "auc")@y.values[[1]]
+
+lgmod4_pred = predict(lgmod4, newdata=df_test)
+lgmod4_pred_auc = prediction(lgmod4_pred, test_ranks)
+performance(lgmod4_pred_auc, "auc")@y.values[[1]]
+
+
 library(lmtest)
 lmtest::lrtest(lgmod,lgmod4)
 lmtest::lrtest(lgmod,lgmod1)
