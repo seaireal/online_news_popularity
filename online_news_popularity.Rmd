@@ -508,9 +508,9 @@ sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-lda_ranks=lda_ranks%>%as.numeric()
-ldaroc <- roc(test_ranks,lda_ranks, levels = c(0, 1), direction = "<")
-auc(ldaroc)
+lda_pred = as.data.frame(predict(lda_mod, newdata=df_test))
+lda_pred_auc = prediction(lda_pred[,2], test_ranks)
+performance(lda_pred_auc, "auc")@y.values[[1]]
 ```
 
 # QDA
@@ -534,6 +534,9 @@ sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 qda_ranks=qda_ranks%>%as.numeric()
 qdaroc <- roc(test_ranks,qda_ranks, levels = c(0, 1), direction = "<")
 auc(qdaroc)
+qda_pred = as.data.frame(predict(qda_mod, newdata=df_test))
+qda_pred_auc = prediction(qda_pred[,2], test_ranks)
+performance(qda_pred_auc, "auc")@y.values[[1]]
 ```
 
 # KNN
