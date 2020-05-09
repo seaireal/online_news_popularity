@@ -302,24 +302,6 @@ gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
 # Logistic Regression
 # model comparison
 ```{r}
-# use all coefficients
-set.seed(1)
-lgmod2 <- glm(ranks~ n_tokens_title+n_tokens_content+n_unique_tokens+num_hrefs+num_imgs+num_videos+average_token_length+num_keywords+kw_avg_min+kw_avg_max+kw_avg_avg+self_reference_avg_sharess+is_weekend+LDA_00+LDA_01+LDA_02+LDA_03+LDA_04+global_subjectivity+global_sentiment_polarity+global_rate_positive_words+global_rate_negative_words+avg_positive_polarity+avg_negative_polarity+title_subjectivity+title_sentiment_polarity,data=df_train, family="binomial")
-formula_lg = formula(lgmod2)
-lgmod2_pred <- predict(lgmod2, df_test, type="response")
-lgmod2_ranks <- ifelse(lgmod2_pred > 0.5, 1, 0)
-test_ranks = df_test$ranks
-print("confusion table")
-table(lgmod2_ranks, test_ranks)
-print("test error")
-mean(lgmod2_ranks != test_ranks)
-print("sensitivity")
-sum(lgmod2_ranks==1 & test_ranks==1)/sum(test_ranks==1)
-print("specificity")
-sum(lgmod2_ranks==0 & test_ranks==0)/sum(test_ranks==0)
-```
-
-```{r}
 # use all coefficients - non-significantt collinearity
 set.seed(1)
 lgmod3 <- glm(ranks~ 
@@ -484,17 +466,17 @@ sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
 # ROC AUC
 ```{r}
-rocmod_for <- roc(test_ranks,lgmod_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
-rocmod_las <- roc(test_ranks,lgmod1_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
-rocmod_full <- roc(test_ranks,lgmod2_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
-rocmod_nonsigcol <- roc(test_ranks,lgmod3_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
-rocmod_col <- roc(test_ranks,lgmod4_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_for <- roc(test_ranks,lgmod_pred)
+rocmod_las <- roc(test_ranks,lgmod1_pred, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_full <- roc(test_ranks,lgmod2_pred, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_nonsigcol <- roc(test_ranks,lgmod3_pred, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_col <- roc(test_ranks,lgmod4_pred, levels = c(0, 1), direction = "<",auc=TRUE)
 
-plot(rocmod_for)
-plot(rocmod_las)
-plot(rocmod_full)
-plot(rocmod_nonsigcol)
-plot(rocmod_col)
+# plot(rocmod_for)
+# plot(rocmod_las)
+# plot(rocmod_full)
+# plot(rocmod_nonsigcol)
+# plot(rocmod_col)
 
 auc(rocmod_for)
 auc(rocmod_las)
