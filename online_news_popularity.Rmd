@@ -296,73 +296,31 @@ gamlm_rmse_ori = mean((exp(gamlm.pred)-df_test$shares)^2) %>% sqrt()
 
 ```{r}
 # GAM using smoothing spline
-gam.fit1 = gam(log(shares) ~ 
-                 s(num_hrefs, df = 2) + 
-                 s(num_imgs, df = 2) + 
-                 s(average_token_length, df = 2) + 
-                 s(num_keywords, df = 2) + 
-                 s(kw_avg_min, df = 2) + 
-                 s(kw_avg_max, df = 2) + 
-                 s(kw_avg_avg, df = 2) + 
-                 s(self_reference_avg_sharess, df = 2) + 
-                 is_weekend + 
-                 LDA_01 + 
-                 LDA_02 + 
-                 LDA_03 + 
-                 s(global_subjectivity, df = 2) + 
-                 s(title_sentiment_polarity, df = 2), data = df_train)
+gam.fit1 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(average_token_length, df=2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train)
+# par(mfrow = c(2, 2))
+# plot(gam.fit1, se = T, col = "blue")
+# summary(gam.fit2)
 
+# average_token_length, seams linear, and anova test choose gam.fit2
+gam.fit0 = gam(log(shares) ~  s(num_hrefs, df = 2) + s(num_imgs, df = 2)  + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
+gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
+# anova(gam.fit0, gam.fit2, gam.fit1, test="F")
+
+# num_hrefs seams linear, apply the same methos based on gam.fit2 and choose gam.fit4
+gam.fit3 = gam(log(shares) ~s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train) # without num_hrefs
+gam.fit4 = gam(log(shares) ~ num_hrefs + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train) # with num_hrefs as linear
+# anova(gam.fit3, gam.fit4, gam.fit2, test="F")
+# par(mfrow = c(2, 2))
+# plot(gam.fit4, se = T, col = "blue")
+
+# global_subjectivity seams linear, apply the same methos based on gam.fit4 and choose gam.fit6
+gam.fit5 = gam(log(shares) ~ num_hrefs + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(title_sentiment_polarity, df = 2), data = df_train) # without global_subjectivity
+gam.fit6 = gam(log(shares) ~ num_hrefs + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + global_subjectivity + s(title_sentiment_polarity, df = 2), data = df_train) # with global_subjectivity as linear
+anova(gam.fit5, gam.fit6, gam.fit4, test="F")
 par(mfrow = c(2, 2))
-plot(gam.fit1, se = T, col = "blue")
-# summary(gam.fit)
+plot(gam.fit6, se = T, col = "blue")
 
-# average_token_length seams linear, but anova test choose gam.fit1
-
-gam.fit0 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
-gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
-anova(gam.fit0, gam.fit1, gam.fit2, test="F")
-anova(gam.fit0, gam.fit1, test="F")
-anova(gam.fit0, gam.fit2, test="F")
-anova(gam.fit0, gam.fit2, gam.fit1, test="F")
-
-gam.pred = predict(gam.fit1, df_test)
-
-gam.fit0 = gam(log(shares) ~ 
-                 s(num_hrefs, df = 2) + 
-                 s(num_imgs, df = 2) + 
-                 s(num_keywords, df = 2) + 
-                 s(kw_avg_min, df = 2) + 
-                 s(kw_avg_max, df = 2) + 
-                 s(kw_avg_avg, df = 2) + 
-                 s(self_reference_avg_sharess, df = 2) + 
-                 is_weekend + 
-                 LDA_01 + 
-                 LDA_02 + 
-                 LDA_03 + 
-                 s(global_subjectivity, df = 2) + 
-                 s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
-
-gam.fit2 = gam(log(shares) ~ 
-                 s(num_hrefs, df = 2) + 
-                 s(num_imgs, df = 2) + 
-                 average_token_length + 
-                 s(num_keywords, df = 2) + 
-                 s(kw_avg_min, df = 2) + 
-                 s(kw_avg_max, df = 2) + 
-                 s(kw_avg_avg, df = 2) + 
-                 s(self_reference_avg_sharess, df = 2) + 
-                 is_weekend + 
-                 LDA_01 + 
-                 LDA_02 + 
-                 LDA_03 + 
-                 s(global_subjectivity, df = 2) + 
-                 s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
-
-anova(gam.fit0, gam.fit2, gam.fit1, test="F")
-# gam.fit2 is the best among all three
-
-gam.pred = predict(gam.fit2, df_test)
-
+gam.pred = predict(gam.fit6, df_test)
 gam_rmse = mean((gam.pred-log(df_test$shares))^2) %>% sqrt()
 # test rmse in original scale
 gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
