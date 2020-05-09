@@ -292,6 +292,7 @@ gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + averag
 anova(gam.fit0, gam.fit1, gam.fit2, test="F")
 anova(gam.fit0, gam.fit1, test="F")
 anova(gam.fit0, gam.fit2, test="F")
+anova(gam.fit0, gam.fit2, gam.fit1, test="F")
 
 gam.pred = predict(gam.fit1, df_test)
 gam_rmse = mean((gam.pred-log(df_test$shares))^2) %>% sqrt()
@@ -466,11 +467,11 @@ sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
 # ROC AUC
 ```{r}
-rocmod_for <- roc(test_ranks,lgmod_pred)
-rocmod_las <- roc(test_ranks,lgmod1_pred, levels = c(0, 1), direction = "<",auc=TRUE)
-rocmod_full <- roc(test_ranks,lgmod2_pred, levels = c(0, 1), direction = "<",auc=TRUE)
-rocmod_nonsigcol <- roc(test_ranks,lgmod3_pred, levels = c(0, 1), direction = "<",auc=TRUE)
-rocmod_col <- roc(test_ranks,lgmod4_pred, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_for <- roc(test_ranks,lgmod_pred, levels = c(0, 1), direction = "<")
+rocmod_las <- roc(test_ranks,lgmod1_pred, levels = c(0, 1), direction = "<")
+rocmod_full <- roc(test_ranks,lgmod2_pred, levels = c(0, 1), direction = "<")
+rocmod_nonsigcol <- roc(test_ranks,lgmod3_pred, levels = c(0, 1), direction = "<")
+rocmod_col <- roc(test_ranks,lgmod4_pred, levels = c(0, 1), direction = "<")
 
 # plot(rocmod_for)
 # plot(rocmod_las)
@@ -485,19 +486,15 @@ auc(rocmod_nonsigcol)
 auc(rocmod_col)
 
 # another way of auc
-lgmod_pred = predict(lgmod, newdata=df_test)
 lgmod_pred_auc = prediction(lgmod_pred, test_ranks)
 performance(lgmod_pred_auc, "auc")@y.values[[1]]
 
-lgmod1_pred = predict(lgmod1, newdata=df_test)
 lgmod1_pred_auc = prediction(lgmod1_pred, test_ranks)
 performance(lgmod1_pred_auc, "auc")@y.values[[1]]
 
-lgmod2_pred = predict(lgmod2, newdata=df_test)
 lgmod2_pred_auc = prediction(lgmod2_pred, test_ranks)
 performance(lgmod2_pred_auc, "auc")@y.values[[1]]
 
-lgmod4_pred = predict(lgmod4, newdata=df_test)
 lgmod4_pred_auc = prediction(lgmod4_pred, test_ranks)
 performance(lgmod4_pred_auc, "auc")@y.values[[1]]
 
@@ -516,8 +513,8 @@ set.seed(1)
 lda_mod = lda(formula_lg, data = df_train)
 
 #coef(lda_mod) %>% dim()
-lda_pred = predict(lda_mod, df_test)
-lda_ranks = lda_pred$class
+lda_preds = predict(lda_mod, df_test)
+lda_ranks = lda_preds$class
 
 print("confusion table")
 table(lda_ranks, test_ranks)
@@ -529,8 +526,14 @@ print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
 lda_pred = as.data.frame(predict(lda_mod, newdata=df_test))
-lda_pred_auc = prediction(lda_pred[,2], test_ranks)
+lda_pred_auc = prediction(lda_pred, test_ranks)
 performance(lda_pred_auc, "auc")@y.values[[1]]
+
+ldaroc <-roc(test_ranks,as.numeric(lda_preds$x), levels = c(0, 1), direction = "<")
+auc(ldaroc)
+
+ldaroc <-roc(test_ranks,as.numeric(lda_ranks), levels = c(0, 1), direction = "<")
+auc(ldaroc)
 ```
 
 # QDA
@@ -630,7 +633,7 @@ par(mfrow = c(2, 2))
 
 gamlr.pred = predict(gam.lr, df_test, type="response")
 gamlrmod_ranks <- ifelse(gamlr.pred > 0.5, 1, 0)
-rocmod_gamlr <- roc(df_test$ranks,gamlrmod_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
+rocmod_gamlr <- roc(df_test$ranks,gamlr.pred)
 plot(rocmod_gamlr)
 auc(rocmod_gamlr)
 ```
@@ -701,7 +704,7 @@ rfmod_pred_auc = prediction(rfmod_pred[,2], test_ranks)
 performance(rfmod_pred_auc, "auc")@y.values[[1]]
 
 # another way of calcluating auc
-rfmod_roc = roc(test_ranks, rfmod_pred[,2])
+rfmod_roc = roc(test_ranks, rfmod_pred[,2], levels = c(0, 1), direction = "<")
 auc(rfmod_roc)
 
 # shanshan
