@@ -281,15 +281,18 @@ gamlm_rmse_ori = mean((exp(gamlm.pred)-df_test$shares)^2) %>% sqrt()
 
 ```{r}
 # GAM using smoothing spline
-gam.fit1 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(average_token_length, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train)
+gam.fit1 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(average_token_length, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03  + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train)
 par(mfrow = c(2, 2))
-plot(gam.fit, se = T, col = "blue")
+plot(gam.fit1, se = T, col = "blue")
 # summary(gam.fit)
 
 # average_token_length seams linear, but anova test choose gam.fit1
 gam.fit0 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
 gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
 anova(gam.fit0, gam.fit1, gam.fit2, test="F")
+anova(gam.fit0, gam.fit1, test="F")
+anova(gam.fit0, gam.fit2, test="F")
+anova(gam.fit1, gam.fit2, test="F")
 
 gam.pred = predict(gam.fit1, df_test)
 gam_rmse = mean((gam.pred-log(df_test$shares))^2) %>% sqrt()
@@ -316,6 +319,7 @@ sum(lgmod2_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod2_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
+
 ```{r}
 # use all coefficients - non-significantt collinearity
 set.seed(1)
