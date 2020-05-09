@@ -316,7 +316,7 @@ par(mfrow = c(2, 2))
 plot(gam.fit1, se = T, col = "blue")
 # summary(gam.fit)
 
-# average_token_length seams linear, but anova test choose gam.fit1
+# average_token_length seams linear
 gam.fit0 = gam(log(shares) ~ 
                  s(num_hrefs, df = 2) + 
                  s(num_imgs, df = 2) + 
@@ -358,7 +358,7 @@ gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
 ```
 
 # Logistic Regression
-# model comparison
+## model comparison
 ```{r}
 # use all coefficients - non-significantt collinearity
 set.seed(1)
@@ -522,7 +522,7 @@ print("specificity")
 sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
-# ROC AUC
+## ROC AUC
 ```{r}
 rocmod_for <- roc(test_ranks,lgmod_pred)
 rocmod_las <- roc(test_ranks,lgmod1_pred, levels = c(0, 1), direction = "<",auc=TRUE)
@@ -576,7 +576,7 @@ lda_mod = lda(formula_lg, data = df_train)
 #coef(lda_mod) %>% dim()
 lda_pred = predict(lda_mod, df_test)
 lda_ranks = lda_pred$class
-
+test_ranks = df_test$ranks
 print("confusion table")
 table(lda_ranks, test_ranks)
 print("test error rate")
@@ -630,6 +630,7 @@ K = seq(1, 20, 2)
 knn_test_error = NULL
 knn_test_sen = NULL
 knn_test_spe = NULL
+test_ranks = df_test$ranks
 
 for(k in K){
   set.seed(1)
@@ -664,6 +665,7 @@ abline(v=17, lty=2)
 ```{r}
 set.seed(1)
 knn_ranks = knn(X_train_knn, X_test_knn, Y_train_knn, 17)
+test_ranks = df_test$ranks
 print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
@@ -673,6 +675,13 @@ sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
+qda_ranks=qda_ranks%>%as.numeric()
+qdaroc <- roc(test_ranks,qda_ranks, levels = c(0, 1), direction = "<")
+auc(qdaroc)
+qda_pred = as.data.frame(predict(qda_mod, newdata=df_test))
+qda_pred_auc = prediction(qda_pred[,2], test_ranks)
+performance(qda_pred_auc, "auc")@y.values[[1]]
+# anther way to calculate auc
 knn_ranks=knn_ranks%>%as.numeric()
 knnroc <- roc(test_ranks,knn_ranks, levels = c(0, 1), direction = "<")
 auc(knnroc)
