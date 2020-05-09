@@ -635,6 +635,21 @@ knnroc <- roc(test_ranks,knn_ranks, levels = c(0, 1), direction = "<")
 auc(knnroc)
 ```
 
+# GAM
+
+```{r}
+gam.lr = gam(ranks ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(average_token_length, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), family=binomial, data = df_train)
+par(mfrow = c(2, 2))
+#plot(gam.lr,se = T,col = "red")
+#summary(gam.lr)
+
+gamlr.pred = predict(gam.lr, df_test, type="response")
+gamlrmod_ranks <- ifelse(gamlr.pred > 0.5, 1, 0)
+rocmod_gamlr <- roc(df_test$ranks,gamlrmod_ranks, levels = c(0, 1), direction = "<",auc=TRUE)
+plot(rocmod_gamlr)
+auc(rocmod_gamlr)
+```
+
 # Classification tree
 
 ```{r}
