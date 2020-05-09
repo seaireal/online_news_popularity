@@ -25,6 +25,7 @@ library(boot) # cross validation
 library(car) # vif, residual plots, partial residual plots
 library (ROCR) 
 library (pROC) # ROC AUC plot
+library(gam) # for gam
 ```
 
 # Load data
@@ -260,6 +261,20 @@ BIC(lmod_bic)
 # forward selection gives a model with a smaller BIC than lasso although the lasso model has fewer predictors
 # the predictors selected by lasso are included in the forward selection model
 # use the forward selected predictors by bic for classification
+```
+
+# Non-Linear Regression
+
+```{r}
+# GAM
+gam.fit = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(average_token_length, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train)
+par(mfrow = c(4, 3))
+plot(gam.fit, se = T, col = "blue")
+
+gam.pred = predict(gam.fit, df_test)
+gam_rmse = mean((gam.pred-log(df_test$shares))^2) %>% sqrt()
+# test rmse in original scale
+gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
 ```
 
 # Logistic Regression
