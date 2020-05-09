@@ -292,7 +292,6 @@ gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + averag
 anova(gam.fit0, gam.fit1, gam.fit2, test="F")
 anova(gam.fit0, gam.fit1, test="F")
 anova(gam.fit0, gam.fit2, test="F")
-anova(gam.fit1, gam.fit2, test="F")
 
 gam.pred = predict(gam.fit1, df_test)
 gam_rmse = mean((gam.pred-log(df_test$shares))^2) %>% sqrt()
