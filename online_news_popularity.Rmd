@@ -26,6 +26,7 @@ library (pROC) # ROC AUC plot
 library(gam) # for gam
 library(tree)
 library(randomForest)
+library(caret)
 ```
 
 # Load data
@@ -594,7 +595,7 @@ print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
 lda_pred = as.data.frame(predict(lda_mod, newdata=df_test))
-lda_pred_auc = prediction(lda_pred, test_ranks)
+lda_pred_auc = prediction(lda_pred[,2], test_ranks)
 performance(lda_pred_auc, "auc")@y.values[[1]]
 
 ldaroc <-roc(test_ranks,as.numeric(lda_preds$x), levels = c(0, 1), direction = "<")
@@ -676,7 +677,8 @@ abline(v=17, lty=2)
 
 ```{r}
 set.seed(1)
-knn_ranks = knn(X_train_knn, X_test_knn, Y_train_knn, 17)
+knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17)
+# prob <- attr(knn_ranks, "prob")
 print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
@@ -686,8 +688,13 @@ sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
+knnmod <- train(ranks ~ ., data = df_train, method = "knn", preProcess = c("center","scale"), tuneLength = 17)
+knn_pred=predict(knnmod,newdata = df_test,type = "prob")
+knn_pred$`0`=as.numeric(knn_pred$`0`)
+knn_pred$`1`=as.numeric(knn_pred$`1`)
+
 knn_ranks=knn_ranks%>%as.numeric()
-knnroc <- roc(test_ranks,knn_ranks, levels = c(0, 1), direction = "<")
+knnroc <- roc(test_ranks,knn_pred, levels = c(0, 1), direction = "<")
 auc(knnroc)
 ```
 
