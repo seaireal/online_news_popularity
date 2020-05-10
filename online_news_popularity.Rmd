@@ -16,7 +16,7 @@ library(ggthemes)
 library(glmnet) # ridge and lasso
 library(pls) # pcr pls
 library(leaps) # regsubset
-library(lmtest)
+library(lmtest) # likelihood ratio test
 library(MASS) # lda qda
 library(class) # knn
 library(caret) # knn with prob
@@ -265,7 +265,7 @@ BIC(lmod_bic)
 # use the forward selected predictors by bic for classification
 ```
 
-# Non-Linear Regression
+# GAM with natural and smoothing splines
 
 ```{r}
 # GAM using natural spline
@@ -435,14 +435,16 @@ gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
 ```
 
 # Logistic Regression
-## Nested model comparison using anova
+## Stepwise selection
 ```{r}
-# use all coefficients - non-significantt collinearity
-set.seed(1)
-lgmod3 <- glm(ranks~ 
+# use all predictors
+# http://www.sthda.com/english/articles/36-classification-methods-essentials/150-stepwise-logistic-regression-essentials-in-r/
+lgmod_full <- glm(ranks~
                 n_tokens_title+
+                n_tokens_content+
                 n_unique_tokens+
-                num_hrefs+num_imgs+
+                num_hrefs+
+                num_imgs+
                 num_videos+
                 average_token_length+
                 num_keywords+
@@ -458,89 +460,52 @@ lgmod3 <- glm(ranks~
                 LDA_04+
                 global_subjectivity+
                 global_sentiment_polarity+
+                global_rate_positive_words+
+                global_rate_negative_words+
                 avg_positive_polarity+
                 avg_negative_polarity+
                 title_subjectivity+
-                title_sentiment_polarity,data=df_train, family="binomial")
-formula_lg = formula(lgmod3)
-lgmod3_pred <- predict(lgmod3, df_test, type="response")
-lgmod3_ranks <- ifelse(lgmod3_pred > 0.5, 1, 0)
+                title_sentiment_polarity,
+             data=df_train, family="binomial")
+
+lgmod_full_pred <- predict(lgmod_full, df_test, type="response")
+lgmod_full_ranks <- ifelse(lgmod_full_pred > 0.5, 1, 0)
 test_ranks = df_test$ranks
 print("confusion table")
-table(lgmod3_ranks, test_ranks)
+table(lgmod_full_ranks, test_ranks)
 print("test error")
-mean(lgmod3_ranks != test_ranks)
+mean(lgmod_full_ranks != test_ranks)
 print("sensitivity")
-sum(lgmod3_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+sum(lgmod_full_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
-sum(lgmod3_ranks==0 & test_ranks==0)/sum(test_ranks==0)
-lmtest::lrtest(lgmod2,lgmod3)
-vif(lgmod3)
-```
+sum(lgmod_full_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
+#auc
+roc(test_ranks, lgmod_full_pred, levels = c(0, 1), direction = "<") %>% auc()
+```
 ```{r}
-# use all coefficients - collinearity
-set.seed(1)
-lgmod4 <- glm(ranks~ 
-                n_tokens_title+
-                n_unique_tokens+
-                num_hrefs+num_imgs+
-                num_videos+
-                average_token_length+
-                num_keywords+
-                kw_avg_min+
-                kw_avg_max+
-                kw_avg_avg+
-                self_reference_avg_sharess+
-                is_weekend+
-                LDA_01+
-                LDA_02+
-                LDA_03+
-                LDA_04+
-                global_subjectivity+
-                global_sentiment_polarity+
-                avg_positive_polarity+
-                avg_negative_polarity+
-                title_subjectivity+
-                title_sentiment_polarity,data=df_train, family="binomial")
-formula_lg = formula(lgmod4)
-lgmod4_pred <- predict(lgmod4, df_test, type="response")
-lgmod4_ranks <- ifelse(lgmod4_pred > 0.5, 1, 0)
+lgmod_aic = stepAIC(lgmod_full, direction="backward", trace=FALSE) #forward didn't remove any predictor
+coef(lgmod_aic)
+
+lgmod_aic_pred <- predict(lgmod_aic, df_test, type="response")
+lgmod_aic_ranks <- ifelse(lgmod_aic_pred > 0.5, 1, 0)
 test_ranks = df_test$ranks
 print("confusion table")
-table(lgmod4_ranks, test_ranks)
+table(lgmod_aic_ranks, test_ranks)
 print("test error")
-mean(lgmod4_ranks != test_ranks)
+mean(lgmod_aic_ranks != test_ranks)
 print("sensitivity")
-sum(lgmod4_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+sum(lgmod_aic_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
-sum(lgmod4_ranks==0 & test_ranks==0)/sum(test_ranks==0)
-lmtest::lrtest(lgmod3,lgmod4)
-vif(lgmod4)
-```
+sum(lgmod_aic_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
+#auc
+roc(test_ranks, lgmod_aic_pred, levels = c(0, 1), direction = "<") %>% auc()
+```
+## Nested model comparison using anova
 
 ```{r}
-# use all coefficients
-set.seed(1)
-lgmod2 <- glm(ranks~ n_tokens_title+n_tokens_content+n_unique_tokens+num_hrefs+num_imgs+num_videos+average_token_length+num_keywords+kw_avg_min+kw_avg_max+kw_avg_avg+self_reference_avg_sharess+is_weekend+LDA_00+LDA_01+LDA_02+LDA_03+LDA_04+global_subjectivity+global_sentiment_polarity+global_rate_positive_words+global_rate_negative_words+avg_positive_polarity+avg_negative_polarity+title_subjectivity+title_sentiment_polarity,data=df_train, family="binomial")
-formula_lg = formula(lgmod2)
-lgmod2_pred <- predict(lgmod2, df_test, type="response")
-lgmod2_ranks <- ifelse(lgmod2_pred > 0.6, 1, 0)
-test_ranks = df_test$ranks
-print("confusion table")
-table(lgmod2_ranks, test_ranks)
-print("test error")
-mean(lgmod2_ranks != test_ranks)
-print("sensitivity")
-sum(lgmod2_ranks==1 & test_ranks==1)/sum(test_ranks==1)
-print("specificity")
-sum(lgmod2_ranks==0 & test_ranks==0)/sum(test_ranks==0)
-vif(lgmod2)
-```
-
-```{r}
-# use lasso coefficients
+# use coefficients identified by the lasso linear regression model
 set.seed(1)
 lgmod1 <- glm(ranks~
                 num_hrefs+
@@ -571,7 +536,7 @@ roc(test_ranks, lgmod1_pred, levels = c(0, 1), direction = "<") %>% auc()
 
 
 ```{r}
-# use forward selection predictors
+# use coefficients identified by the linear regression model forward selection using BIC
 lgmod <- glm(ranks~
                 num_hrefs+
                 num_imgs+
@@ -605,45 +570,9 @@ sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 roc(test_ranks, lgmod_pred, levels = c(0, 1), direction = "<") %>% auc()
 ```
 
-### ROC AUC for nested logistic regression models
 ```{r}
-rocmod_for <- roc(test_ranks,lgmod_pred, levels = c(0, 1), direction = "<")
-rocmod_las <- roc(test_ranks,lgmod1_pred, levels = c(0, 1), direction = "<")
-rocmod_full <- roc(test_ranks,lgmod2_pred, levels = c(0, 1), direction = "<")
-rocmod_nonsigcol <- roc(test_ranks,lgmod3_pred, levels = c(0, 1), direction = "<")
-rocmod_col <- roc(test_ranks,lgmod4_pred, levels = c(0, 1), direction = "<")
-
-# plot(rocmod_for)
-# plot(rocmod_las)
-# plot(rocmod_full)
-# plot(rocmod_nonsigcol)
-# plot(rocmod_col)
-
-auc(rocmod_for)
-auc(rocmod_las)
-auc(rocmod_full)
-auc(rocmod_nonsigcol)
-auc(rocmod_col)
-
-# another way of auc
-lgmod_pred_auc = prediction(lgmod_pred, test_ranks)
-performance(lgmod_pred_auc, "auc")@y.values[[1]]
-
-lgmod1_pred_auc = prediction(lgmod1_pred, test_ranks)
-performance(lgmod1_pred_auc, "auc")@y.values[[1]]
-
-lgmod2_pred_auc = prediction(lgmod2_pred, test_ranks)
-performance(lgmod2_pred_auc, "auc")@y.values[[1]]
-
-lgmod4_pred_auc = prediction(lgmod4_pred, test_ranks)
-performance(lgmod4_pred_auc, "auc")@y.values[[1]]
-
-
-lmtest::lrtest(lgmod,lgmod4)
-lmtest::lrtest(lgmod,lgmod1)
-lmtest::lrtest(lgmod4,lgmod2)
+anova(lgmod1, lgmod, lgmod_aic, lgmod_full, test="Chisq")
 ```
-
 
 ## Create model matrix for penalized logistic regression
 ```{r}
