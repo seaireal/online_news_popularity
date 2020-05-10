@@ -595,7 +595,7 @@ auc(lda_roc)
 ```{r}
 set.seed(1)
 # perform QDA on the training data
-qda_mod = qda(formula_lg, data = df_train,type="prob")
+qda_mod = qda(formula_lg, data = df_train)
 qda_pred = predict(qda_mod, df_test)
 qda_ranks = qda_pred$class
 test_ranks = df_test$ranks
