@@ -16,6 +16,7 @@ library(ggthemes)
 library(glmnet) # ridge and lasso
 library(pls) # pcr pls
 library(leaps) # regsubset
+library(lmtest)
 library(MASS) # lda qda
 library(class) # knn
 library(caret) # knn with prob
@@ -434,7 +435,7 @@ gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
 ```
 
 # Logistic Regression
-# model comparison
+## Nested model comparison using anova
 ```{r}
 # use all coefficients - non-significantt collinearity
 set.seed(1)
@@ -564,6 +565,8 @@ sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 vif(lgmod1)
+#auc
+roc(test_ranks, lgmod1_pred, levels = c(0, 1), direction = "<") %>% auc()
 ```
 
 
@@ -597,9 +600,12 @@ print("sensitivity")
 sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+#auc
+roc(test_ranks, lgmod_pred, levels = c(0, 1), direction = "<") %>% auc()
 ```
 
-# ROC AUC
+### ROC AUC for nested logistic regression models
 ```{r}
 rocmod_for <- roc(test_ranks,lgmod_pred, levels = c(0, 1), direction = "<")
 rocmod_las <- roc(test_ranks,lgmod1_pred, levels = c(0, 1), direction = "<")
@@ -633,11 +639,42 @@ lgmod4_pred_auc = prediction(lgmod4_pred, test_ranks)
 performance(lgmod4_pred_auc, "auc")@y.values[[1]]
 
 
-library(lmtest)
 lmtest::lrtest(lgmod,lgmod4)
 lmtest::lrtest(lgmod,lgmod1)
 lmtest::lrtest(lgmod4,lgmod2)
 ```
+
+
+## Create model matrix for penalized logistic regression
+```{r}
+# create model matrix
+X_train_l = model.matrix(ranks~.-shares, df_train)[ ,-1] # remove intercept
+Y_train_l = df_train$ranks
+X_test_l = model.matrix(ranks~.-shares, df_test)[ ,-1] # remove intercept
+Y_test_l = df_test$ranks
+```
+
+## Lasso penalized logistic regression
+```{r}
+set.seed(1)
+lgmod_lasso_cv = cv.glmnet(X_train_l, Y_train_l, alpha = 1, family = "binomial")
+lgmod_lasso = glmnet(X_train_l, Y_train_l, alpha = 1, family = "binomial", lambda = lgmod_lasso_cv$lambda.min)
+lgmod_lasso_pred = predict(lgmod_lasso, s=lgmod_lasso_cv$lambda.min, newx=X_test_l, type="response")
+lgmod_ranks <- ifelse(lgmod_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod_ranks, test_ranks)
+print("test error")
+mean(lgmod_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+#auc
+roc(test_ranks, lgmod_pred, levels = c(0, 1), direction = "<") %>% auc()
+```
+
 # LDA
 
 ```{r}
@@ -659,7 +696,7 @@ sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-lda_roc <-roc(test_ranks,lda_pred$posterior.1, levels = c(0, 1), direction = "<")
+lda_roc <-roc(test_ranks,lda_pred$posterior[,2], levels = c(0, 1), direction = "<")
 auc(lda_roc)
 ```
 
@@ -681,7 +718,7 @@ sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-qda_roc <- roc(test_ranks,qda_pred$posterior.1, levels = c(0, 1), direction = "<")
+qda_roc <- roc(test_ranks,qda_pred$posterior[,2], levels = c(0, 1), direction = "<")
 auc(qda_roc)
 ```
 
