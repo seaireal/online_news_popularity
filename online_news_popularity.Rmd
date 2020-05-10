@@ -551,13 +551,6 @@ sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-lda_pred = as.data.frame(predict(lda_mod, newdata=df_test))
-lda_pred_auc = prediction(lda_pred, test_ranks)
-performance(lda_pred_auc, "auc")@y.values[[1]]
-
-ldaroc <-roc(test_ranks,as.numeric(lda_preds$x), levels = c(0, 1), direction = "<")
-auc(ldaroc)
-
 ldaroc <-roc(test_ranks,as.numeric(lda_ranks), levels = c(0, 1), direction = "<")
 auc(ldaroc)
 ```
@@ -583,9 +576,6 @@ sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 qda_ranks=qda_ranks%>%as.numeric()
 qdaroc <- roc(test_ranks,qda_ranks, levels = c(0, 1), direction = "<")
 auc(qdaroc)
-qda_pred = as.data.frame(predict(qda_mod, newdata=df_test))
-qda_pred_auc = prediction(qda_pred[,2], test_ranks)
-performance(qda_pred_auc, "auc")@y.values[[1]]
 ```
 
 # KNN
@@ -727,18 +717,13 @@ print("specificity")
 sum(rfmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
 # auc: method 1
-rfmod_pred = predict(rfmod, newdata=df_test, type="prob")
-rfmod_pred_auc = prediction(rfmod_pred[,2], test_ranks)
-performance(rfmod_pred_auc, "auc")@y.values[[1]]
-
-# auc: method 2
-rfmod_roc = roc(test_ranks, rfmod_pred[,2], levels = c(0, 1), direction = "<")
-auc(rfmod_roc)
-
-# auc: method 3
 rfmod_ranks=rfmod_ranks%>%as.numeric()
 rfroc <- roc(test_ranks,rfmod_ranks, levels = c(0, 1), direction = "<")
 auc(rfroc)
+
+# auc: method 2
+rfmod_pred_auc = prediction(rfmod_ranks, test_ranks)
+performance(rfmod_pred_auc, "auc")@y.values[[1]]
 ```
 
 ```{r fig.height=8, fig.width=10}
@@ -806,6 +791,6 @@ print("specificity")
 sum(bmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
 # auc value
-gbm.roc.area(test_ranks, bmod_ranks)
+gbm.roc.area(as.numeric(test_ranks), bmod_ranks)
 ```
 
