@@ -16,7 +16,6 @@ library(ggthemes)
 library(glmnet) # ridge and lasso
 library(pls) # pcr pls
 library(leaps) # regsubset
-library(lmtest) # likelihood ratio test
 library(MASS) # lda qda
 library(class) # knn
 library(caret) # knn with prob
