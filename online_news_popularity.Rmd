@@ -797,9 +797,6 @@ sum(plmod_ranks==0 & as.numeric(y_test)-1==0)/sum(as.numeric(y_test)-1==0)
 
 plroc=roc(y_test, plmod_pred, levels = c(0, 1), direction = "<")
 auc(plroc)
-
-plmod_pred_auc = prediction(plmod_pred, y_test)
-performance(plmod_pred_auc, "auc")@y.values[[1]]
 ```
 
 # GAM
