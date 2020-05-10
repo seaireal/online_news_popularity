@@ -678,14 +678,17 @@ sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-knnmod <- train(ranks ~ ., data = df_train, method = "knn", preProcess = c("center","scale"), tuneLength = 17)
+knnmod <- train(ranks ~ ., data = df_train, method = "knn", preProcess = c("center","scale"))
 knn_pred=predict(knnmod,newdata = df_test,type = "prob")
+
 knn_pred$`0`=as.numeric(knn_pred$`0`)
 knn_pred$`1`=as.numeric(knn_pred$`1`)
-
-knn_ranks=knn_ranks%>%as.numeric()
-knnroc <- roc(test_ranks,knn_pred, levels = c(0, 1), direction = "<")
+knnroc <- roc(test_ranks,knn_pred[,2], levels = c(0, 1), direction = "<")
 auc(knnroc)
+
+pred_knn <- prediction(knn_pred[,2], test_ranks)
+performance(pred_knn, "auc")@y.values[[1]]
+# plot(pred_knn, avg= "threshold", colorize=T, lwd=3, main="Voilà, a ROC curve!")
 ```
 
 # GAM
