@@ -660,7 +660,7 @@ sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-lda_roc <-roc(test_ranks,lda_pred$posterior.1, levels = c(0, 1), direction = "<")
+lda_roc <-roc(test_ranks,as.numeric(lda_preds$x), levels = c(0, 1), direction = "<")
 auc(lda_roc)
 ```
 
@@ -682,7 +682,7 @@ sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-qda_roc <- roc(test_ranks,qda_pred$posterior.1, levels = c(0, 1), direction = "<")
+qda_roc <- roc(test_ranks,as.numeric(qda_pred$posterior[,2]), levels = c(0, 1), direction = "<")
 auc(qda_roc)
 ```
 
@@ -732,15 +732,12 @@ abline(v=17, lty=2)
 
 ```{r}
 set.seed(1)
-<<<<<<< HEAD
 knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17)
-=======
-knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17, prob=TRUE)
+
 knn_prob = attr(knn_ranks, "prob") #the proportion of the votes for the winning class
 #https://stackoverflow.com/questions/11741599/how-to-plot-a-roc-curve-for-a-knn-model
 knn_prob_clean = 2*ifelse(knn_ranks == "0", 1-knn_prob, knn_prob) - 1
 
->>>>>>> b1650cf256e5c76e91e1a98b98bb2a591db8cf23
 print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
