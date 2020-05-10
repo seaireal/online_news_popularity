@@ -869,9 +869,8 @@ print("specificity")
 sum(trmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
 # auc
-trmod_ranks=trmod_ranks%>%as.numeric()
-trroc <- roc(test_ranks,trmod_ranks, levels = c(0, 1), direction = "<")
-auc(trroc)
+trmod_pred = predict(trmod, df_test, type="vector")
+roc(test_ranks, trmod_pred[,2], levels = c(0, 1), direction = "<") %>% auc()
 ```
 
 ```{r}
