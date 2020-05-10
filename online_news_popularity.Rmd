@@ -658,8 +658,9 @@ set.seed(1)
 lda_mod = lda(formula_lg, data = df_train)
 
 #coef(lda_mod) %>% dim()
-lda_pred = predict(lda_mod, df_test)
+lda_pred = predict(lda_mod, df_test, type="prob")
 lda_ranks = lda_preds$class
+#lda_ranks = ifelse(lda_pred$posterior[,2]>0.8, 1, 0)
 
 print("confusion table")
 table(lda_ranks, test_ranks)
@@ -679,7 +680,7 @@ auc(lda_roc)
 ```{r}
 set.seed(1)
 # perform QDA on the training data
-qda_mod = qda(formula_lg, data = df_train)
+qda_mod = qda(formula(lgmod), data = df_train)
 qda_pred = predict(qda_mod, df_test)
 qda_ranks = qda_pred$class
 test_ranks = df_test$ranks
@@ -757,8 +758,7 @@ print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
 # auc
-knn_roc <- roc(test_ranks,knn_prob_clean, levels = c(0, 1), direction = "<")
-auc(knn_roc)
+roc(test_ranks,knn_prob_clean, levels = c(0, 1), direction = "<") %>% auc()
 ```
 
 ```{r}
