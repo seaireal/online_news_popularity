@@ -26,6 +26,7 @@ library (pROC) # ROC AUC plot
 library(gam) # for gam
 library(tree)
 library(randomForest)
+library(caret)
 ```
 
 # Load data
@@ -296,38 +297,80 @@ gamlm_rmse_ori = mean((exp(gamlm.pred)-df_test$shares)^2) %>% sqrt()
 
 ```{r}
 # GAM using smoothing spline
-gam.fit1 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(average_token_length, df=2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train)
-# par(mfrow = c(2, 2))
-# plot(gam.fit1, se = T, col = "blue")
-# summary(gam.fit2)
+gam.fit1 = gam(log(shares) ~ 
+                 s(num_hrefs, df = 2) + 
+                 s(num_imgs, df = 2) + 
+                 s(average_token_length, df = 2) + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train)
 
-# average_token_length, seams linear, and anova test choose gam.fit2
-gam.fit0 = gam(log(shares) ~  s(num_hrefs, df = 2) + s(num_imgs, df = 2)  + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
-gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
-# anova(gam.fit0, gam.fit2, gam.fit1, test="F")
-
-# num_hrefs seams linear, apply the same methos based on gam.fit2 and choose gam.fit4
-gam.fit3 = gam(log(shares) ~s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train) # without num_hrefs
-gam.fit4 = gam(log(shares) ~ num_hrefs + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df=2) + s(title_sentiment_polarity, df = 2), data = df_train) # with num_hrefs as linear
-# anova(gam.fit3, gam.fit4, gam.fit2, test="F")
-# par(mfrow = c(2, 2))
-# plot(gam.fit4, se = T, col = "blue")
-
-# global_subjectivity seams linear, apply the same methos based on gam.fit4 and choose gam.fit6
-gam.fit5 = gam(log(shares) ~ num_hrefs + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(title_sentiment_polarity, df = 2), data = df_train) # without global_subjectivity
-gam.fit6 = gam(log(shares) ~ num_hrefs + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + global_subjectivity + s(title_sentiment_polarity, df = 2), data = df_train) # with global_subjectivity as linear
-anova(gam.fit5, gam.fit6, gam.fit4, test="F")
 par(mfrow = c(2, 2))
-plot(gam.fit6, se = T, col = "blue")
+plot(gam.fit1, se = T, col = "blue")
+# summary(gam.fit)
 
-gam.pred = predict(gam.fit6, df_test)
+# average_token_length seams linear, but anova test choose gam.fit1
+
+gam.fit0 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
+gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
+anova(gam.fit0, gam.fit1, gam.fit2, test="F")
+anova(gam.fit0, gam.fit1, test="F")
+anova(gam.fit0, gam.fit2, test="F")
+anova(gam.fit0, gam.fit2, gam.fit1, test="F")
+
+gam.pred = predict(gam.fit1, df_test)
+
+gam.fit0 = gam(log(shares) ~ 
+                 s(num_hrefs, df = 2) + 
+                 s(num_imgs, df = 2) + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
+
+gam.fit2 = gam(log(shares) ~ 
+                 s(num_hrefs, df = 2) + 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
+
+anova(gam.fit0, gam.fit2, gam.fit1, test="F")
+# gam.fit2 is the best among all three
+
+gam.pred = predict(gam.fit2, df_test)
+
 gam_rmse = mean((gam.pred-log(df_test$shares))^2) %>% sqrt()
 # test rmse in original scale
 gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
 ```
 
 # Logistic Regression
-## model comparison
+# model comparison
 ```{r}
 # use all coefficients - non-significantt collinearity
 set.seed(1)
@@ -491,7 +534,7 @@ print("specificity")
 sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 ```
 
-## ROC AUC
+# ROC AUC
 ```{r}
 rocmod_for <- roc(test_ranks,lgmod_pred, levels = c(0, 1), direction = "<")
 rocmod_las <- roc(test_ranks,lgmod1_pred, levels = c(0, 1), direction = "<")
@@ -539,9 +582,9 @@ set.seed(1)
 lda_mod = lda(formula_lg, data = df_train)
 
 #coef(lda_mod) %>% dim()
-lda_pred = predict(lda_mod, df_test)
-lda_ranks = lda_pred$class
-test_ranks = df_test$ranks
+lda_preds = predict(lda_mod, df_test)
+lda_ranks = lda_preds$class
+
 print("confusion table")
 table(lda_ranks, test_ranks)
 print("test error rate")
@@ -591,7 +634,6 @@ K = seq(1, 20, 2)
 knn_test_error = NULL
 knn_test_sen = NULL
 knn_test_spe = NULL
-test_ranks = df_test$ranks
 
 for(k in K){
   set.seed(1)
@@ -625,8 +667,8 @@ abline(v=17, lty=2)
 
 ```{r}
 set.seed(1)
-knn_ranks = knn(X_train_knn, X_test_knn, Y_train_knn, 17)
-test_ranks = df_test$ranks
+knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17)
+# prob <- attr(knn_ranks, "prob")
 print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
@@ -636,8 +678,13 @@ sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
+knnmod <- train(ranks ~ ., data = df_train, method = "knn", preProcess = c("center","scale"), tuneLength = 17)
+knn_pred=predict(knnmod,newdata = df_test,type = "prob")
+knn_pred$`0`=as.numeric(knn_pred$`0`)
+knn_pred$`1`=as.numeric(knn_pred$`1`)
+
 knn_ranks=knn_ranks%>%as.numeric()
-knnroc <- roc(test_ranks,knn_ranks, levels = c(0, 1), direction = "<")
+knnroc <- roc(test_ranks,knn_pred, levels = c(0, 1), direction = "<")
 auc(knnroc)
 ```
 
