@@ -726,16 +726,16 @@ sum(rfmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(rfmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
-# auc
+# auc: method 1
 rfmod_pred = predict(rfmod, newdata=df_test, type="prob")
 rfmod_pred_auc = prediction(rfmod_pred[,2], test_ranks)
 performance(rfmod_pred_auc, "auc")@y.values[[1]]
 
-# another way of calcluating auc
+# auc: method 2
 rfmod_roc = roc(test_ranks, rfmod_pred[,2], levels = c(0, 1), direction = "<")
 auc(rfmod_roc)
 
-# shanshan
+# auc: method 3
 rfmod_ranks=rfmod_ranks%>%as.numeric()
 rfroc <- roc(test_ranks,rfmod_ranks, levels = c(0, 1), direction = "<")
 auc(rfroc)
