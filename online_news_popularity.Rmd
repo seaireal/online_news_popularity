@@ -18,6 +18,8 @@ library(pls) # pcr pls
 library(leaps) # regsubset
 library(MASS) # lda qda
 library(class) # knn
+library(caret) # knn with prob
+library(e1071) # knn with prob
 library(gbm) # boosting
 library(boot) # cross validation
 library(car) # vif, residual plots, partial residual plots
@@ -26,7 +28,6 @@ library (pROC) # ROC AUC plot
 library(gam) # for gam
 library(tree)
 library(randomForest)
-library(caret)
 ```
 
 # Load data
@@ -313,21 +314,11 @@ gam.fit1 = gam(log(shares) ~
                  s(global_subjectivity, df = 2) + 
                  s(title_sentiment_polarity, df = 2), data = df_train)
 
-par(mfrow = c(2, 2))
-plot(gam.fit1, se = T, col = "blue")
+#par(mfrow = c(2, 2))
+#plot(gam.fit1, se = T, col = "blue")
 # summary(gam.fit)
 
-# average_token_length seams linear, but anova test choose gam.fit1
-
-gam.fit0 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
-gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
-anova(gam.fit0, gam.fit1, gam.fit2, test="F")
-anova(gam.fit0, gam.fit1, test="F")
-anova(gam.fit0, gam.fit2, test="F")
-anova(gam.fit0, gam.fit2, gam.fit1, test="F")
-
-gam.pred = predict(gam.fit1, df_test)
-
+# average_token_length, seams linear, and anova test choose gam.fit2
 gam.fit0 = gam(log(shares) ~ 
                  s(num_hrefs, df = 2) + 
                  s(num_imgs, df = 2) + 
@@ -359,10 +350,83 @@ gam.fit2 = gam(log(shares) ~
                  s(global_subjectivity, df = 2) + 
                  s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
 
-anova(gam.fit0, gam.fit2, gam.fit1, test="F")
-# gam.fit2 is the best among all three
+#anova(gam.fit0, gam.fit2, gam.fit1, test="F")
 
-gam.pred = predict(gam.fit2, df_test)
+# num_hrefs seams linear, apply the same method based on gam.fit2 and choose gam.fit4
+gam.fit3 = gam(log(shares) ~ 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # without num_hrefs
+
+gam.fit4 = gam(log(shares) ~ 
+                 num_hrefs + 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # with num_hrefs as linear
+
+# anova(gam.fit3, gam.fit4, gam.fit2, test="F")
+# par(mfrow = c(2, 2))
+# plot(gam.fit4, se = T, col = "blue")
+
+# global_subjectivity seams linear, apply the same method based on gam.fit4 and choose gam.fit6
+
+gam.fit5 = gam(log(shares) ~ 
+                 num_hrefs + 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # without global_subjectivity
+
+gam.fit6 = gam(log(shares) ~ 
+                 num_hrefs + 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 global_subjectivity + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # with global_subjectivity as linear
+
+anova(gam.fit5, gam.fit6, gam.fit4, test="F")
+
+par(mfrow = c(2, 2))
+plot(gam.fit6, se = T, col = "blue")
+
+gam.pred = predict(gam.fit6, df_test)
 
 gam_rmse = mean((gam.pred-log(df_test$shares))^2) %>% sqrt()
 # test rmse in original scale
@@ -584,7 +648,7 @@ set.seed(1)
 lda_mod = lda(formula_lg, data = df_train)
 
 #coef(lda_mod) %>% dim()
-lda_preds = predict(lda_mod, df_test)
+lda_pred = predict(lda_mod, df_test)
 lda_ranks = lda_preds$class
 
 print("confusion table")
@@ -596,11 +660,8 @@ sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-ldaroc <-roc(test_ranks,as.numeric(lda_preds$x), levels = c(0, 1), direction = "<")
-auc(ldaroc)
-
-ldamod_pred_auc = prediction(lda_preds$x, test_ranks)
-performance(ldamod_pred_auc, "auc")@y.values[[1]]
+lda_roc <-roc(test_ranks,lda_pred$posterior.1, levels = c(0, 1), direction = "<")
+auc(lda_roc)
 ```
 
 # QDA
@@ -608,7 +669,7 @@ performance(ldamod_pred_auc, "auc")@y.values[[1]]
 ```{r}
 set.seed(1)
 # perform QDA on the training data
-qda_mod = qda(formula_lg, data = df_train,type="prob")
+qda_mod = qda(formula_lg, data = df_train)
 qda_pred = predict(qda_mod, df_test)
 qda_ranks = qda_pred$class
 test_ranks = df_test$ranks
@@ -621,11 +682,8 @@ sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-qdaroc <-roc(test_ranks,as.numeric(qda_pred$posterior[,2]), levels = c(0, 1), direction = "<")
-auc(qdaroc)
-
-qdamod_pred_auc = prediction(qda_pred$posterior[,2], test_ranks)
-performance(qdamod_pred_auc, "auc")@y.values[[1]]
+qda_roc <- roc(test_ranks,qda_pred$posterior.1, levels = c(0, 1), direction = "<")
+auc(qda_roc)
 ```
 
 # KNN
@@ -644,7 +702,7 @@ knn_test_spe = NULL
 
 for(k in K){
   set.seed(1)
-  knn_ranks = knn(X_train_knn, X_test_knn, Y_train_knn, k)
+  knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k)
   knn_test_error[k] = mean(knn_ranks!=test_ranks)
   knn_test_sen[k] = sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
   knn_test_spe[k] = sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
@@ -674,7 +732,15 @@ abline(v=17, lty=2)
 
 ```{r}
 set.seed(1)
+<<<<<<< HEAD
 knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17)
+=======
+knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17, prob=TRUE)
+knn_prob = attr(knn_ranks, "prob") #the proportion of the votes for the winning class
+#https://stackoverflow.com/questions/11741599/how-to-plot-a-roc-curve-for-a-knn-model
+knn_prob_clean = 2*ifelse(knn_ranks == "0", 1-knn_prob, knn_prob) - 1
+
+>>>>>>> b1650cf256e5c76e91e1a98b98bb2a591db8cf23
 print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
@@ -683,21 +749,26 @@ print("sensitivity")
 sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
 # auc
+knn_roc <- roc(test_ranks,knn_prob_clean, levels = c(0, 1), direction = "<")
+auc(knn_roc)
+```
+
+```{r}
+#takes too long to run
+#https://rstudio-pubs-static.s3.amazonaws.com/16444_caf85a306d564eb490eebdbaf0072df2.html
 knnmod <- train(ranks ~ ., data = df_train, method = "knn", preProcess = c("center","scale"))
 knn_pred=predict(knnmod,newdata = df_test,type = "prob")
 
 knn_pred$`0`=as.numeric(knn_pred$`0`)
 knn_pred$`1`=as.numeric(knn_pred$`1`)
+#auc: method 1
 knnroc <- roc(test_ranks,knn_pred[,2], levels = c(0, 1), direction = "<")
 auc(knnroc)
-
+#auc: method 2
 pred_knn <- prediction(knn_pred[,2], test_ranks)
 performance(pred_knn, "auc")@y.values[[1]]
-
-# knn_ranks=knn_ranks%>%as.numeric()
-# knnroc <- roc(test_ranks,knn_ranks, levels = c(0, 1), direction = "<")
-# auc(knnroc)
 ```
 
 # Penalized Logistic Regression
