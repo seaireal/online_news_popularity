@@ -18,6 +18,8 @@ library(pls) # pcr pls
 library(leaps) # regsubset
 library(MASS) # lda qda
 library(class) # knn
+library(caret) # knn with prob
+library(e1071) # knn with prob
 library(gbm) # boosting
 library(boot) # cross validation
 library(car) # vif, residual plots, partial residual plots
@@ -26,7 +28,6 @@ library (pROC) # ROC AUC plot
 library(gam) # for gam
 library(tree)
 library(randomForest)
-library(caret)
 ```
 
 # Load data
@@ -316,16 +317,6 @@ gam.fit1 = gam(log(shares) ~
 par(mfrow = c(2, 2))
 plot(gam.fit1, se = T, col = "blue")
 # summary(gam.fit)
-
-# average_token_length seams linear, but anova test choose gam.fit1
-
-gam.fit0 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
-gam.fit2 = gam(log(shares) ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + average_token_length + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
-anova(gam.fit0, gam.fit1, gam.fit2, test="F")
-anova(gam.fit0, gam.fit1, test="F")
-anova(gam.fit0, gam.fit2, test="F")
-anova(gam.fit0, gam.fit2, gam.fit1, test="F")
-
 gam.pred = predict(gam.fit1, df_test)
 
 gam.fit0 = gam(log(shares) ~ 
@@ -594,8 +585,8 @@ sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-ldaroc <-roc(test_ranks,as.numeric(lda_ranks), levels = c(0, 1), direction = "<")
-auc(ldaroc)
+lda_roc <-roc(test_ranks,lda_pred$posterior.1, levels = c(0, 1), direction = "<")
+auc(lda_roc)
 ```
 
 # QDA
@@ -616,9 +607,8 @@ sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-qda_ranks=qda_ranks%>%as.numeric()
-qdaroc <- roc(test_ranks,qda_ranks, levels = c(0, 1), direction = "<")
-auc(qdaroc)
+qda_roc <- roc(test_ranks,qda_pred$posterior.1, levels = c(0, 1), direction = "<")
+auc(qda_roc)
 ```
 
 # KNN
@@ -637,7 +627,7 @@ knn_test_spe = NULL
 
 for(k in K){
   set.seed(1)
-  knn_ranks = knn(X_train_knn, X_test_knn, Y_train_knn, k)
+  knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k)
   knn_test_error[k] = mean(knn_ranks!=test_ranks)
   knn_test_sen[k] = sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
   knn_test_spe[k] = sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
@@ -667,8 +657,11 @@ abline(v=17, lty=2)
 
 ```{r}
 set.seed(1)
-knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17)
-# prob <- attr(knn_ranks, "prob")
+knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17, prob=TRUE)
+knn_prob = attr(knn_ranks, "prob") #the proportion of the votes for the winning class
+#https://stackoverflow.com/questions/11741599/how-to-plot-a-roc-curve-for-a-knn-model
+knn_prob_clean = 2*ifelse(knn_ranks == "0", 1-knn_prob, knn_prob) - 1
+
 print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
@@ -677,15 +670,19 @@ print("sensitivity")
 sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
-# auc
-knnmod <- train(ranks ~ ., data = df_train, method = "knn", preProcess = c("center","scale"), tuneLength = 17)
-knn_pred=predict(knnmod,newdata = df_test,type = "prob")
-knn_pred$`0`=as.numeric(knn_pred$`0`)
-knn_pred$`1`=as.numeric(knn_pred$`1`)
 
-knn_ranks=knn_ranks%>%as.numeric()
-knnroc <- roc(test_ranks,knn_pred, levels = c(0, 1), direction = "<")
-auc(knnroc)
+# auc
+knn_roc <- roc(test_ranks,knn_prob_clean, levels = c(0, 1), direction = "<")
+auc(knn_roc)
+```
+
+```{r}
+#takes too long to run
+#https://rstudio-pubs-static.s3.amazonaws.com/16444_caf85a306d564eb490eebdbaf0072df2.html
+#knn_mod = train(ranks ~ . -shares, data = df_train, method = "knn", preProcess = c("center","scale"), tuneLength = 17)
+#knn_pred = predict(knn_mod,newdata = df_test, type = "prob")
+#knn_pred$`0`=as.numeric(knn_pred$`0`)
+#knn_pred$`1`=as.numeric(knn_pred$`1`)
 ```
 
 # GAM
