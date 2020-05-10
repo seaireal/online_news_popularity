@@ -1,0 +1,969 @@
+---
+title: "Online News Popularity"
+author: "Hui Wang, Shanshan Hu, and Zhichao Hu"
+date: "4/1/2020"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+library(glmnet) # ridge and lasso
+library(pls) # pcr pls
+library(leaps) # regsubset
+library(MASS) # lda qda
+library(class) # knn
+library(caret) # knn with prob
+library(e1071) # knn with prob
+library(gbm) # boosting
+library(boot) # cross validation
+library(car) # vif, residual plots, partial residual plots
+library (ROCR) 
+library (pROC) # ROC AUC plot
+library(gam) # for gam
+library(tree)
+library(randomForest)
+```
+
+# Load data
+
+```{r}
+df = read_csv("OnlineNewsPopularity.csv") # to be cleaned
+```
+
+```{r}
+# delete 2 non-predictive variables
+# divide the shares into 2 groups: 0 - not popular, 1 - popular
+df <- df %>% dplyr::select(-url, -timedelta) %>% 
+  mutate(
+
+    channel = case_when(
+      data_channel_is_lifestyle == 1 ~ 1,
+      data_channel_is_entertainment == 1 ~ 2,
+      data_channel_is_bus == 1 ~ 3,
+      data_channel_is_socmed == 1 ~ 4,
+      data_channel_is_tech == 1 ~ 5,
+      data_channel_is_world == 1 ~ 6,
+      TRUE ~ 7
+    ) %>% as_factor(),
+    
+    weekday = case_when(
+      weekday_is_monday == 1 ~ 1,
+      weekday_is_tuesday ==1 ~ 2,
+      weekday_is_wednesday == 1 ~ 3,
+      weekday_is_thursday == 1 ~ 4,
+      weekday_is_friday == 1 ~ 5,
+      weekday_is_saturday == 1 ~ 6,
+      weekday_is_sunday == 1 ~ 7
+    ) %>% as_factor(),
+    
+    ranks = case_when(
+      shares > median(df$shares) ~ 1,
+      shares <= median(df$shares) ~ 0
+    ) %>% as_factor()
+    
+  ) %>% dplyr::select(-starts_with("data_channel_is"),
+                      -starts_with("weekday_is"),
+                      -starts_with("abs_"),
+                      -starts_with("kw_min"),
+                      -starts_with("kw_max"),
+                      -n_non_stop_words,
+                      -n_non_stop_unique_tokens,
+                      -num_self_hrefs,
+                      -self_reference_min_shares,
+                      -self_reference_max_shares,
+                      -rate_positive_words,
+                      -rate_negative_words,
+                      -min_positive_polarity,
+                      -max_positive_polarity,
+                      -min_negative_polarity,
+                      -max_negative_polarity,
+                      -channel, -weekday)
+
+# remove channel as not all categories are covered (6134 unclassified)
+# remove weekday as is_weekend variable captures this information
+# remove abs_title_subjectivity and abs_title_sentiment_polarity (adjusted values by substracting 0.5)
+# remove min or max type of measures for predictors (keep average type instead)
+
+#table(df$ranks)
+#colnames(df)[ apply(df, 2, anyNA) ] #check NA columns
+```
+
+# Create training and testing sets
+
+```{r}
+# split the data set into a training set and a test set
+set.seed(123)
+split_size = nrow(df)/5
+testing = sample(1:nrow(df), split_size)
+df_train = df[-testing, ]
+df_test = df[testing, ]
+```
+
+# Create model matrix for Ridge, Lasso, PCR, and PLS
+```{r}
+# create model matrix
+X_train = model.matrix(log(shares)~.-ranks, df_train)[ ,-1] # remove intercept
+Y_train = log(df_train$shares)
+X_test = model.matrix(log(shares)~.-ranks, df_test)[ ,-1] # remove intercept
+Y_test = log(df_test$shares)
+```
+
+# Linear regression
+
+```{r}
+# linear regression
+
+#plot(df$shares)   # heavily positive skewness
+#stem(df$shares)
+#hist(log(df$shares))
+
+
+# cor(X_train, method = c("pearson"))
+
+lmod <- lm(log(shares) ~ . -ranks, data=df)
+summary(lmod)
+#coef(lmod) %>% length() # of predictors including intercept
+
+# from the description of the predictors and the sammry of the lm, we can easily know that 
+# the model doesn't fit well at least because of the multicollinearity
+```
+
+```{r}
+# subset selection
+formula_lm = formula(lmod)
+lmod_subset = regsubsets(formula_lm, data=df, method="forward", nvmax=26)
+lmod_subset_summary = summary(lmod_subset)
+
+which.min(lmod_subset_summary$bic)
+which.max(lmod_subset_summary$adjr2)
+
+par(mfrow = c(1, 2))
+plot(lmod_subset_summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
+     main = "BIC")
+points(14,lmod_subset_summary$bic[14],col="red",cex=2,pch=20)
+plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20, type = "l",
+     main = "Adjusted R2")
+points(19,lmod_subset_summary$adjr2[19],col="red",cex=2,pch=20)
+
+coef(lmod_subset, 14)
+
+# the adjusted R2 is still too low, only around 2%, why?
+# need to try other methods, such as ridge and lasso
+```
+
+```{r}
+lmod_bic = lm(log(shares)~
+                num_hrefs+
+                num_imgs+
+                average_token_length+
+                num_keywords+
+                kw_avg_min+
+                kw_avg_max+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02+
+                LDA_03+
+                global_subjectivity+
+                title_sentiment_polarity,
+              data=df_train
+              )
+
+summary(lmod_bic)
+
+lmod_pred = predict(lmod_bic, df_test)
+lmod_rmse = mean((lmod_pred-log(df_test$shares))^2) %>% sqrt()
+# test rmse in original scale
+lmod_rmse_ori = mean((exp(lmod_pred)-df_test$shares)^2) %>% sqrt()
+```
+
+# PCR
+
+```{r}
+set.seed (1)
+pcr.fit=pcr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
+summary (pcr.fit)
+validationplot(pcr.fit,val.type="MSEP")
+pcr.pred=predict(pcr.fit, X_test, ncomp =25)
+sqrt(mean((as.numeric(pcr.pred)-Y_test)^2))
+pcr.pred=predict(pcr.fit, X_test, ncomp =18)
+mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+pcr.pred=predict(pcr.fit, X_test, ncomp =1) # smallest model, not so large rmse
+mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+print("test rmse in original scale")
+mean((exp(as.numeric(pcr.pred))-df_test$shares)^2)%>% sqrt()
+
+pcr.pred=predict(pcr.fit, X_test, ncomp =2)
+mean((as.numeric(pcr.pred)-Y_test)^2)%>% sqrt()
+
+```
+
+# PLS
+
+```{r}
+set.seed (1)
+pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
+summary(pls.fit)
+pls.pred=predict(pls.fit, X_test, ncomp =15)  # smallest error
+mean((pls.pred -Y_test)^2)%>% sqrt()
+print("test rmse in original scale")
+mean((exp(pls.pred) - df_test$shares)^2)%>% sqrt()
+pls.pred=predict(pls.fit, X_test, ncomp =24)
+mean((pls.pred -Y_test)^2)%>% sqrt()
+```
+
+# Ridge
+
+```{r}
+set.seed(1)
+ridge_cv = cv.glmnet(X_train, Y_train, alpha = 0)
+ridge_lam = ridge_cv$lambda.min
+ridge_mod = glmnet(X_train, Y_train, alpha = 0, lambda = ridge_lam)
+ridge_pred = predict(ridge_mod, s=ridge_lam, newx=X_test)
+ridge_rmse = mean((ridge_pred-Y_test)^2) %>% sqrt()
+ridge_rmse_ori = mean((exp(ridge_pred)-df_test$shares)^2) %>% sqrt()
+```
+
+# Lasso
+
+```{r}
+set.seed(1)
+lasso_cv = cv.glmnet(X_train, Y_train, alpha = 1)
+lasso_lam = lasso_cv$lambda.min
+lasso_mod = glmnet(X_train, Y_train, alpha = 1, lambda = lasso_lam)
+lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_test)
+lasso_rmse = mean((lasso_pred-Y_test)^2) %>% sqrt()
+lasso_rmse_ori = mean((exp(lasso_pred)-df_test$shares)^2) %>% sqrt()
+```
+
+```{r}
+coef(lasso_mod)
+lmod_las = lm(log(shares)~
+                num_hrefs+
+                num_imgs+
+                num_keywords+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02, 
+              data=df_train)
+summary(lmod_las)
+formula_las = formula(lmod_las)
+BIC(lmod_las)
+BIC(lmod_bic)
+# forward selection gives a model with a smaller BIC than lasso although the lasso model has fewer predictors
+# the predictors selected by lasso are included in the forward selection model
+# use the forward selected predictors by bic for classification
+```
+
+# Non-Linear Regression
+
+```{r}
+# GAM using natural spline
+# predictors selected by forward BIC in the linear model
+gam.lm = lm(log(shares) ~ 
+              ns(num_hrefs, df = 2) + 
+              ns(num_imgs, df = 2) + 
+              ns(average_token_length, df = 2) + 
+              ns(num_keywords, df = 2) + 
+              ns(kw_avg_min, df = 2) + 
+              ns(kw_avg_max, df = 2) + 
+              ns(kw_avg_avg, df = 2) + 
+              ns(self_reference_avg_sharess, df = 2) + 
+              is_weekend + 
+              LDA_01 + 
+              LDA_02 + 
+              LDA_03 + 
+              ns(global_subjectivity, df = 2) + 
+              ns(title_sentiment_polarity, df = 2), data = df_train)
+
+par(mfrow = c(2, 2))
+plot.Gam(gam.lm, se = T, col = "red")
+
+summary(gam.lm)
+
+gamlm.pred = predict(gam.lm, df_test)
+gamlm_rmse = mean((gamlm.pred-log(df_test$shares))^2) %>% sqrt()
+# test rmse in original scale
+gamlm_rmse_ori = mean((exp(gamlm.pred)-df_test$shares)^2) %>% sqrt()
+```
+
+```{r}
+# GAM using smoothing spline
+gam.fit1 = gam(log(shares) ~ 
+                 s(num_hrefs, df = 2) + 
+                 s(num_imgs, df = 2) + 
+                 s(average_token_length, df = 2) + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train)
+
+#par(mfrow = c(2, 2))
+#plot(gam.fit1, se = T, col = "blue")
+# summary(gam.fit)
+
+# average_token_length, seams linear, and anova test choose gam.fit2
+gam.fit0 = gam(log(shares) ~ 
+                 s(num_hrefs, df = 2) + 
+                 s(num_imgs, df = 2) + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # without average_token_length
+
+gam.fit2 = gam(log(shares) ~ 
+                 s(num_hrefs, df = 2) + 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # with average_token_length as linear
+
+#anova(gam.fit0, gam.fit2, gam.fit1, test="F")
+
+# num_hrefs seams linear, apply the same method based on gam.fit2 and choose gam.fit4
+gam.fit3 = gam(log(shares) ~ 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # without num_hrefs
+
+gam.fit4 = gam(log(shares) ~ 
+                 num_hrefs + 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(global_subjectivity, df = 2) + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # with num_hrefs as linear
+
+# anova(gam.fit3, gam.fit4, gam.fit2, test="F")
+# par(mfrow = c(2, 2))
+# plot(gam.fit4, se = T, col = "blue")
+
+# global_subjectivity seams linear, apply the same method based on gam.fit4 and choose gam.fit6
+
+gam.fit5 = gam(log(shares) ~ 
+                 num_hrefs + 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # without global_subjectivity
+
+gam.fit6 = gam(log(shares) ~ 
+                 num_hrefs + 
+                 s(num_imgs, df = 2) + 
+                 average_token_length + 
+                 s(num_keywords, df = 2) + 
+                 s(kw_avg_min, df = 2) + 
+                 s(kw_avg_max, df = 2) + 
+                 s(kw_avg_avg, df = 2) + 
+                 s(self_reference_avg_sharess, df = 2) + 
+                 is_weekend + 
+                 LDA_01 + 
+                 LDA_02 + 
+                 LDA_03 + 
+                 global_subjectivity + 
+                 s(title_sentiment_polarity, df = 2), data = df_train) # with global_subjectivity as linear
+
+anova(gam.fit5, gam.fit6, gam.fit4, test="F")
+
+par(mfrow = c(2, 2))
+plot(gam.fit6, se = T, col = "blue")
+
+gam.pred = predict(gam.fit6, df_test)
+
+gam_rmse = mean((gam.pred-log(df_test$shares))^2) %>% sqrt()
+# test rmse in original scale
+gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
+```
+
+# Logistic Regression
+# model comparison
+```{r}
+# use all coefficients - non-significantt collinearity
+set.seed(1)
+lgmod3 <- glm(ranks~ 
+                n_tokens_title+
+                n_unique_tokens+
+                num_hrefs+num_imgs+
+                num_videos+
+                average_token_length+
+                num_keywords+
+                kw_avg_min+
+                kw_avg_max+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_00+
+                LDA_01+
+                LDA_02+
+                LDA_03+
+                LDA_04+
+                global_subjectivity+
+                global_sentiment_polarity+
+                avg_positive_polarity+
+                avg_negative_polarity+
+                title_subjectivity+
+                title_sentiment_polarity,data=df_train, family="binomial")
+formula_lg = formula(lgmod3)
+lgmod3_pred <- predict(lgmod3, df_test, type="response")
+lgmod3_ranks <- ifelse(lgmod3_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod3_ranks, test_ranks)
+print("test error")
+mean(lgmod3_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod3_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod3_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+lmtest::lrtest(lgmod2,lgmod3)
+vif(lgmod3)
+```
+
+```{r}
+# use all coefficients - collinearity
+set.seed(1)
+lgmod4 <- glm(ranks~ 
+                n_tokens_title+
+                n_unique_tokens+
+                num_hrefs+num_imgs+
+                num_videos+
+                average_token_length+
+                num_keywords+
+                kw_avg_min+
+                kw_avg_max+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02+
+                LDA_03+
+                LDA_04+
+                global_subjectivity+
+                global_sentiment_polarity+
+                avg_positive_polarity+
+                avg_negative_polarity+
+                title_subjectivity+
+                title_sentiment_polarity,data=df_train, family="binomial")
+formula_lg = formula(lgmod4)
+lgmod4_pred <- predict(lgmod4, df_test, type="response")
+lgmod4_ranks <- ifelse(lgmod4_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod4_ranks, test_ranks)
+print("test error")
+mean(lgmod4_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod4_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod4_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+lmtest::lrtest(lgmod3,lgmod4)
+vif(lgmod4)
+```
+
+
+```{r}
+# use all coefficients
+set.seed(1)
+lgmod2 <- glm(ranks~ n_tokens_title+n_tokens_content+n_unique_tokens+num_hrefs+num_imgs+num_videos+average_token_length+num_keywords+kw_avg_min+kw_avg_max+kw_avg_avg+self_reference_avg_sharess+is_weekend+LDA_00+LDA_01+LDA_02+LDA_03+LDA_04+global_subjectivity+global_sentiment_polarity+global_rate_positive_words+global_rate_negative_words+avg_positive_polarity+avg_negative_polarity+title_subjectivity+title_sentiment_polarity,data=df_train, family="binomial")
+formula_lg = formula(lgmod2)
+lgmod2_pred <- predict(lgmod2, df_test, type="response")
+lgmod2_ranks <- ifelse(lgmod2_pred > 0.6, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod2_ranks, test_ranks)
+print("test error")
+mean(lgmod2_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod2_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod2_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+vif(lgmod2)
+```
+
+```{r}
+# use lasso coefficients
+set.seed(1)
+lgmod1 <- glm(ranks~
+                num_hrefs+
+                num_imgs+
+                num_keywords+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02,
+             data=df_train, family="binomial")
+formula_lg = formula(lgmod1)
+lgmod1_pred <- predict(lgmod1, df_test, type="response")
+lgmod1_ranks <- ifelse(lgmod1_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod1_ranks, test_ranks)
+print("test error")
+mean(lgmod1_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+vif(lgmod1)
+```
+
+
+```{r}
+# use forward selection predictors
+lgmod <- glm(ranks~
+                num_hrefs+
+                num_imgs+
+                average_token_length+
+                num_keywords+
+                kw_avg_min+
+                kw_avg_max+
+                kw_avg_avg+
+                self_reference_avg_sharess+
+                is_weekend+
+                LDA_01+
+                LDA_02+
+                LDA_03+
+                global_subjectivity+
+                title_sentiment_polarity,
+             data=df_train, family="binomial")
+formula_lg = formula(lgmod)
+lgmod_pred <- predict(lgmod, df_test, type="response")
+lgmod_ranks <- ifelse(lgmod_pred > 0.5, 1, 0)
+test_ranks = df_test$ranks
+print("confusion table")
+table(lgmod_ranks, test_ranks)
+print("test error")
+mean(lgmod_ranks != test_ranks)
+print("sensitivity")
+sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+vif(lgmod)
+```
+
+# ROC AUC
+```{r}
+rocmod_for <- roc(test_ranks,lgmod_pred, levels = c(0, 1), direction = "<")
+rocmod_las <- roc(test_ranks,lgmod1_pred, levels = c(0, 1), direction = "<")
+rocmod_full <- roc(test_ranks,lgmod2_pred, levels = c(0, 1), direction = "<")
+rocmod_nonsigcol <- roc(test_ranks,lgmod3_pred, levels = c(0, 1), direction = "<")
+rocmod_col <- roc(test_ranks,lgmod4_pred, levels = c(0, 1), direction = "<")
+
+# plot(rocmod_for)
+# plot(rocmod_las)
+# plot(rocmod_full)
+# plot(rocmod_nonsigcol)
+# plot(rocmod_col)
+
+auc(rocmod_for)
+auc(rocmod_las)
+auc(rocmod_full)
+auc(rocmod_nonsigcol)
+auc(rocmod_col)
+
+# another way of auc
+lgmod_pred_auc = prediction(lgmod_pred, test_ranks)
+performance(lgmod_pred_auc, "auc")@y.values[[1]]
+
+lgmod1_pred_auc = prediction(lgmod1_pred, test_ranks)
+performance(lgmod1_pred_auc, "auc")@y.values[[1]]
+
+lgmod2_pred_auc = prediction(lgmod2_pred, test_ranks)
+performance(lgmod2_pred_auc, "auc")@y.values[[1]]
+
+lgmod4_pred_auc = prediction(lgmod4_pred, test_ranks)
+performance(lgmod4_pred_auc, "auc")@y.values[[1]]
+
+
+library(lmtest)
+lmtest::lrtest(lgmod,lgmod4)
+lmtest::lrtest(lgmod,lgmod1)
+lmtest::lrtest(lgmod3,lgmod2)
+```
+# LDA
+
+```{r}
+set.seed(1)
+# perform LDA on the training data
+# use predictors chosen by Lasso
+lda_mod = lda(formula_lg, data = df_train)
+
+#coef(lda_mod) %>% dim()
+lda_pred = predict(lda_mod, df_test)
+lda_ranks = lda_preds$class
+
+print("confusion table")
+table(lda_ranks, test_ranks)
+print("test error rate")
+mean(lda_ranks!= test_ranks)
+print("sensitivity")
+sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+# auc
+lda_roc <-roc(test_ranks,as.numeric(lda_preds$x), levels = c(0, 1), direction = "<")
+auc(lda_roc)
+```
+
+# QDA
+
+```{r}
+set.seed(1)
+# perform QDA on the training data
+qda_mod = qda(formula_lg, data = df_train)
+qda_pred = predict(qda_mod, df_test)
+qda_ranks = qda_pred$class
+test_ranks = df_test$ranks
+print("confusion table")
+table(qda_ranks, test_ranks)
+print("test error rate")
+mean(qda_ranks!=test_ranks)
+print("sensitivity")
+sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+# auc
+qda_roc <- roc(test_ranks,as.numeric(qda_pred$posterior[,2]), levels = c(0, 1), direction = "<")
+auc(qda_roc)
+```
+
+# KNN
+
+```{r}
+ptm = proc.time()
+
+X_train_knn = df_train %>% dplyr::select(-shares, -ranks) %>% scale()
+X_test_knn = df_test %>% dplyr::select(-shares, -ranks) %>% scale()
+Y_train_knn = df_train$ranks
+
+K = seq(1, 20, 2)
+knn_test_error = NULL
+knn_test_sen = NULL
+knn_test_spe = NULL
+
+for(k in K){
+  set.seed(1)
+  knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k)
+  knn_test_error[k] = mean(knn_ranks!=test_ranks)
+  knn_test_sen[k] = sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+  knn_test_spe[k] = sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+}
+
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
+```
+
+```{r}
+which.min(knn_test_error)
+which.max(knn_test_sen)
+which.max(knn_test_spe)
+# k = 17 gives the lowest test error and highest specificity
+```
+
+```{r fig.height=8, fig.width=6}
+par(mfrow=c(3,1), mar=c(5,5,5,5))
+plot(knn_test_error, xlab=NA, ylab="test error rate", col="red", cex=1.5, lwd=2, cex.lab=2)
+abline(v=17, lty=2)
+title("KNN", cex.main=2)
+plot(knn_test_sen, xlab=NA, ylab="sensitivity", col="blue", cex=1.5, lwd=2, cex.lab=2)
+abline(v=15, lty=2)
+plot(knn_test_spe, xlab="K", ylab="specificity", col="purple", cex=1.5, lwd=2, cex.lab=2)
+abline(v=17, lty=2)
+```
+
+```{r}
+set.seed(1)
+knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17)
+knn_prob = attr(knn_ranks, "prob") #the proportion of the votes for the winning class
+#https://stackoverflow.com/questions/11741599/how-to-plot-a-roc-curve-for-a-knn-model
+knn_prob_clean = 2*ifelse(knn_ranks == "0", 1-knn_prob, knn_prob) - 1
+print("confusion table")
+table(knn_ranks, test_ranks)
+print("test error rate")
+mean(knn_ranks!=test_ranks)
+print("sensitivity")
+sum(knn_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(knn_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+# auc
+knn_roc <- roc(test_ranks,knn_prob_clean, levels = c(0, 1), direction = "<")
+auc(knn_roc)
+```
+
+```{r}
+#takes too long to run
+#https://rstudio-pubs-static.s3.amazonaws.com/16444_caf85a306d564eb490eebdbaf0072df2.html
+knnmod <- train(ranks ~ ., data = df_train, method = "knn", preProcess = c("center","scale"))
+knn_pred=predict(knnmod,newdata = df_test,type = "prob")
+
+knn_pred$`0`=as.numeric(knn_pred$`0`)
+knn_pred$`1`=as.numeric(knn_pred$`1`)
+#auc: method 1
+knnroc <- roc(test_ranks,knn_pred[,2], levels = c(0, 1), direction = "<")
+auc(knnroc)
+#auc: method 2
+pred_knn <- prediction(knn_pred[,2], test_ranks)
+performance(pred_knn, "auc")@y.values[[1]]
+```
+
+# Penalized Logistic Regression
+Run on full model
+```{r}
+x_train = model.matrix(ranks~.-shares, df_train)[ ,-1] # remove intercept
+y_train = df_train$ranks
+x_test = model.matrix(ranks~.-shares, df_test)[ ,-1] # remove intercept
+y_test = df_test$ranks
+
+set.seed(1)
+cv.lasso <- cv.glmnet(x_train, y_train, alpha = 1, family = "binomial")
+plmod <- glmnet(x_train, y_train, alpha = 1, family = "binomial",
+                lambda = cv.lasso$lambda.min)
+coef(plmod)
+plmod_pred <-  predict(plmod,newx = x_test,type = "response")
+plmod_ranks <- ifelse(plmod_pred > 0.5, 1,0)
+print("confusion table")
+table(plmod_ranks, as.numeric(y_test)-1)
+print("test error rate")
+mean(plmod_ranks!=as.numeric(y_test)-1)
+print("sensitivity")
+sum(plmod_ranks==1 & as.numeric(y_test)-1==1)/sum(as.numeric(y_test)-1==1)
+print("specificity")
+sum(plmod_ranks==0 & as.numeric(y_test)-1==0)/sum(as.numeric(y_test)-1==0)
+
+plroc=roc(y_test, plmod_pred, levels = c(0, 1), direction = "<")
+auc(plroc)
+
+plmod_pred_auc = prediction(plmod_pred, y_test)
+performance(plmod_pred_auc, "auc")@y.values[[1]]
+```
+
+# GAM
+
+```{r}
+gam.lr = gam(ranks ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(average_token_length, df = 2) + s(num_keywords, df = 2) + s(kw_avg_min, df = 2) + s(kw_avg_max, df = 2) + s(kw_avg_avg, df = 2) + s(self_reference_avg_sharess, df = 2) + is_weekend + LDA_01 + LDA_02 + LDA_03 + s(global_subjectivity, df = 2) + s(title_sentiment_polarity, df = 2), family=binomial, data = df_train)
+par(mfrow = c(2, 2))
+#plot(gam.lr,se = T,col = "red")
+#summary(gam.lr)
+
+print("confusion table")
+table(gamlrmod_ranks, test_ranks)
+print("test error rate")
+mean(gamlrmod_ranks!=test_ranks)
+print("sensitivity")
+sum(gamlrmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(gamlrmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+gamlr.pred = predict(gam.lr, df_test, type="response")
+gamlrmod_ranks <- ifelse(gamlr.pred > 0.5, 1, 0)
+rocmod_gamlr <- roc(df_test$ranks,gamlr.pred)
+plot(rocmod_gamlr)
+auc(rocmod_gamlr)
+```
+
+# Classification tree
+
+```{r}
+# use all predictors
+set.seed(1)
+ptm = proc.time()
+trmod = tree(ranks~.-shares, data=df_train)
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
+summary(trmod)
+```
+
+```{r}
+trmod_ranks = predict(trmod, df_test, type="class")
+print("confusion table")
+table(trmod_ranks, test_ranks)
+print("test error rate")
+mean(trmod_ranks!=test_ranks)
+print("sensitivity")
+sum(trmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(trmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+# auc
+trmod_ranks=trmod_ranks%>%as.numeric()
+trroc <- roc(test_ranks,trmod_ranks, levels = c(0, 1), direction = "<")
+auc(trroc)
+```
+
+```{r}
+plot(trmod)
+text(trmod, pretty=0)
+```
+
+```{r}
+set.seed(1)
+trmod_cv = cv.tree(trmod)
+trmod_cv
+```
+
+# Random forest
+```{r}
+# use all predictors
+ptm = proc.time()
+rfmod = randomForest(ranks ~ .-shares, data=df_train, importance=TRUE)
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
+```
+
+```{r}
+rfmod_ranks = predict(rfmod, newdata=df_test, type="response")
+print("confusion table")
+table(rfmod_ranks, test_ranks)
+print("test error rate")
+mean(rfmod_ranks!=test_ranks)
+print("sensitivity")
+sum(rfmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(rfmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+# auc: method 1
+rfmod_pred=predict(rfmod, newdata=df_test, type="prob")
+rfroc <- roc(test_ranks,rfmod_pred[,2], levels = c(0, 1), direction = "<")
+auc(rfroc)
+
+# auc: method 2
+rfmod_pred_auc = prediction(rfmod_pred[,2], test_ranks)
+performance(rfmod_pred_auc, "auc")@y.values[[1]]
+#https://stackoverflow.com/questions/30366143/how-to-compute-roc-and-auc-under-roc-after-training-using-caret-in-r
+#https://chandramanitiwary.wordpress.com/2014/03/17/r-tips-part2-rocr-example-with-randomforest/
+#https://blog.revolutionanalytics.com/2016/08/roc-curves-in-two-lines-of-code.html
+```
+
+```{r fig.height=8, fig.width=10}
+rfmod_imp = importance(rfmod, type=1) %>% as.data.frame()
+rfmod_imp = cbind(predictor = rownames(rfmod_imp), rfmod_imp)
+rownames(rfmod_imp) = 1:nrow(rfmod_imp)
+rfmod_imp = arrange(rfmod_imp, desc(MeanDecreaseAccuracy))
+rfmod_impgg = ggplot(rfmod_imp, aes(reorder(predictor, MeanDecreaseAccuracy), MeanDecreaseAccuracy, fill=MeanDecreaseAccuracy)) + 
+                              geom_col() + xlab(NULL) + ylab("mean decrease in accuracy") + coord_flip() +
+                              scale_fill_continuous(name=NULL) + theme_classic() +
+                              theme(text=element_text(size=18), legend.position=c(0.9, 0.2))
+rfmod_impgg
+
+#ggsave("rfmod_impgg.jpeg", width=10, height=8, units="in", dpi=300)
+```
+
+```{r}
+varImpPlot(rfmod)
+```
+
+# Boosting
+
+```{r}
+ptm = proc.time()
+df_train_b = df_train %>% dplyr::select(-shares) %>% mutate(ranks=as.numeric(levels(ranks))[ranks])
+df_test_b = df_test %>% dplyr::select(-shares) %>% mutate(ranks=as.numeric(levels(ranks))[ranks])
+set.seed(1)
+bmod = gbm(ranks~., df_train_b, distribution="bernoulli", n.trees=5000, interaction.depth=4)
+time_spent = proc.time() - ptm
+paste("Processing time:", round(time_spent[3]))
+```
+
+
+```{r fig.height=8, fig.width=10}
+#summary(bmod)
+#plot(bmod, i="kw_avg_avg")
+#plot(bmod, i="is_weekend")
+bmod_imp = summary(bmod)
+
+#bmod_imp = cbind(predictor = rownames(bmod_imp), bmod_imp)
+#rownames(bmod_imp) = 1:nrow(bmod_imp)
+
+bmod_imp = bmod_imp %>% rename("predictor"="var", "rel_inf" = "rel.inf")
+
+bmod_impgg = ggplot(bmod_imp, aes(reorder(predictor, rel_inf), rel_inf, fill=rel_inf)) + 
+                              geom_col() + xlab(NULL) + ylab("relative influence") + coord_flip() +
+                              scale_fill_continuous(name=NULL) + theme_classic() +
+                              theme(text=element_text(size=18), legend.position=c(0.9, 0.2))
+bmod_impgg
+
+#ggsave("bmod_impgg.jpeg", width=10, height=8, units="in", dpi=300)
+```
+
+```{r}
+bmod_pred = predict(bmod, newdata=df_test_b, n.trees=5000, type="response")
+bmod_ranks = ifelse(bmod_pred > 0.5, 1, 0)
+
+print("confusion table")
+table(bmod_ranks, test_ranks)
+print("test error rate")
+mean(bmod_ranks!=test_ranks)
+print("sensitivity")
+sum(bmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(bmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+
+# auc: method 1
+broc <- roc(test_ranks, bmod_pred, levels = c(0, 1), direction = "<")
+auc(broc)
+# auc: method 2
+bmod_pred_auc = prediction(bmod_pred, test_ranks)
+performance(bmod_pred_auc, "auc")@y.values[[1]]
+#https://github.com/gbm-developers/gbm3/issues/156
+```
+
