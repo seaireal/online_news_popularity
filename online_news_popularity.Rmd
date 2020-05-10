@@ -533,6 +533,7 @@ print("sensitivity")
 sum(lgmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+vif(lgmod)
 ```
 
 # ROC AUC
@@ -572,7 +573,7 @@ performance(lgmod4_pred_auc, "auc")@y.values[[1]]
 library(lmtest)
 lmtest::lrtest(lgmod,lgmod4)
 lmtest::lrtest(lgmod,lgmod1)
-lmtest::lrtest(lgmod4,lgmod2)
+lmtest::lrtest(lgmod3,lgmod2)
 ```
 # LDA
 
@@ -674,7 +675,6 @@ abline(v=17, lty=2)
 ```{r}
 set.seed(1)
 knn_ranks = class::knn(X_train_knn, X_test_knn, Y_train_knn, k=17)
-# prob <- attr(knn_ranks, "prob")
 print("confusion table")
 table(knn_ranks, test_ranks)
 print("test error rate")
@@ -700,6 +700,37 @@ performance(pred_knn, "auc")@y.values[[1]]
 # auc(knnroc)
 ```
 
+# Penalized Logistic Regression
+Run on full model
+```{r}
+x_train = model.matrix(ranks~.-shares, df_train)[ ,-1] # remove intercept
+y_train = df_train$ranks
+x_test = model.matrix(ranks~.-shares, df_test)[ ,-1] # remove intercept
+y_test = df_test$ranks
+
+set.seed(1)
+cv.lasso <- cv.glmnet(x_train, y_train, alpha = 1, family = "binomial")
+plmod <- glmnet(x_train, y_train, alpha = 1, family = "binomial",
+                lambda = cv.lasso$lambda.min)
+coef(plmod)
+plmod_pred <-  predict(plmod,newx = x_test,type = "response")
+plmod_ranks <- ifelse(plmod_pred > 0.5, 1,0)
+print("confusion table")
+table(plmod_ranks, as.numeric(y_test)-1)
+print("test error rate")
+mean(plmod_ranks!=as.numeric(y_test)-1)
+print("sensitivity")
+sum(plmod_ranks==1 & as.numeric(y_test)-1==1)/sum(as.numeric(y_test)-1==1)
+print("specificity")
+sum(plmod_ranks==0 & as.numeric(y_test)-1==0)/sum(as.numeric(y_test)-1==0)
+
+plroc=roc(y_test, plmod_pred, levels = c(0, 1), direction = "<")
+auc(plroc)
+
+plmod_pred_auc = prediction(plmod_pred, y_test)
+performance(plmod_pred_auc, "auc")@y.values[[1]]
+```
+
 # GAM
 
 ```{r}
@@ -707,6 +738,15 @@ gam.lr = gam(ranks ~ s(num_hrefs, df = 2) + s(num_imgs, df = 2) + s(average_toke
 par(mfrow = c(2, 2))
 #plot(gam.lr,se = T,col = "red")
 #summary(gam.lr)
+
+print("confusion table")
+table(gamlrmod_ranks, test_ranks)
+print("test error rate")
+mean(gamlrmod_ranks!=test_ranks)
+print("sensitivity")
+sum(gamlrmod_ranks==1 & test_ranks==1)/sum(test_ranks==1)
+print("specificity")
+sum(gamlrmod_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 
 gamlr.pred = predict(gam.lr, df_test, type="response")
 gamlrmod_ranks <- ifelse(gamlr.pred > 0.5, 1, 0)
