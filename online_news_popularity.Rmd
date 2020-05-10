@@ -437,6 +437,7 @@ gam_rmse_ori = mean((exp(gam.pred)-df_test$shares)^2) %>% sqrt()
 ## Stepwise selection
 ```{r}
 # use all predictors
+# heavy collinearity
 # http://www.sthda.com/english/articles/36-classification-methods-essentials/150-stepwise-logistic-regression-essentials-in-r/
 lgmod_full <- glm(ranks~
                 n_tokens_title+
@@ -484,7 +485,10 @@ roc(test_ranks, lgmod_full_pred, levels = c(0, 1), direction = "<") %>% auc()
 ```
 ```{r}
 lgmod_aic = stepAIC(lgmod_full, direction="backward", trace=FALSE) #forward didn't remove any predictor
+
 coef(lgmod_aic)
+# heavy collinearity
+vif(lgmod_aic)
 
 lgmod_aic_pred <- predict(lgmod_aic, df_test, type="response")
 lgmod_aic_ranks <- ifelse(lgmod_aic_pred > 0.5, 1, 0)
@@ -516,7 +520,7 @@ lgmod1 <- glm(ranks~
                 LDA_01+
                 LDA_02,
              data=df_train, family="binomial")
-formula_lg = formula(lgmod1)
+
 lgmod1_pred <- predict(lgmod1, df_test, type="response")
 lgmod1_ranks <- ifelse(lgmod1_pred > 0.5, 1, 0)
 test_ranks = df_test$ranks
