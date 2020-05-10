@@ -499,6 +499,7 @@ print("sensitivity")
 sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+vif(lgmod1)
 ```
 
 
@@ -594,16 +595,19 @@ sum(lda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-ldaroc <-roc(test_ranks,as.numeric(lda_ranks), levels = c(0, 1), direction = "<")
+ldaroc <-roc(test_ranks,as.numeric(lda_preds$x), levels = c(0, 1), direction = "<")
 auc(ldaroc)
+
+ldamod_pred_auc = prediction(lda_preds$x, test_ranks)
+performance(ldamod_pred_auc, "auc")@y.values[[1]]
 ```
 
 # QDA
 
 ```{r}
 set.seed(1)
-# perform LDA on the training data
-qda_mod = qda(formula_lg, data = df_train)
+# perform QDA on the training data
+qda_mod = qda(formula_lg, data = df_train,type="prob")
 qda_pred = predict(qda_mod, df_test)
 qda_ranks = qda_pred$class
 test_ranks = df_test$ranks
@@ -616,9 +620,11 @@ sum(qda_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(qda_ranks==0 & test_ranks==0)/sum(test_ranks==0)
 # auc
-qda_ranks=qda_ranks%>%as.numeric()
-qdaroc <- roc(test_ranks,qda_ranks, levels = c(0, 1), direction = "<")
+qdaroc <-roc(test_ranks,as.numeric(qda_pred$posterior[,2]), levels = c(0, 1), direction = "<")
 auc(qdaroc)
+
+qdamod_pred_auc = prediction(qda_pred$posterior[,2], test_ranks)
+performance(qdamod_pred_auc, "auc")@y.values[[1]]
 ```
 
 # KNN
