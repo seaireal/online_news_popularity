@@ -490,6 +490,7 @@ print("sensitivity")
 sum(lgmod1_ranks==1 & test_ranks==1)/sum(test_ranks==1)
 print("specificity")
 sum(lgmod1_ranks==0 & test_ranks==0)/sum(test_ranks==0)
+vif(lgmod1)
 ```
 
 
@@ -573,7 +574,7 @@ set.seed(1)
 lda_mod = lda(formula_lg, data = df_train)
 
 #coef(lda_mod) %>% dim()
-lda_preds = predict(lda_mod, df_test)
+lda_pred = predict(lda_mod, df_test)
 lda_ranks = lda_preds$class
 
 print("confusion table")
@@ -593,8 +594,8 @@ auc(lda_roc)
 
 ```{r}
 set.seed(1)
-# perform LDA on the training data
-qda_mod = qda(formula_lg, data = df_train)
+# perform QDA on the training data
+qda_mod = qda(formula_lg, data = df_train,type="prob")
 qda_pred = predict(qda_mod, df_test)
 qda_ranks = qda_pred$class
 test_ranks = df_test$ranks
@@ -679,10 +680,17 @@ auc(knn_roc)
 ```{r}
 #takes too long to run
 #https://rstudio-pubs-static.s3.amazonaws.com/16444_caf85a306d564eb490eebdbaf0072df2.html
-#knn_mod = train(ranks ~ . -shares, data = df_train, method = "knn", preProcess = c("center","scale"), tuneLength = 17)
-#knn_pred = predict(knn_mod,newdata = df_test, type = "prob")
-#knn_pred$`0`=as.numeric(knn_pred$`0`)
-#knn_pred$`1`=as.numeric(knn_pred$`1`)
+knnmod <- train(ranks ~ ., data = df_train, method = "knn", preProcess = c("center","scale"))
+knn_pred=predict(knnmod,newdata = df_test,type = "prob")
+
+knn_pred$`0`=as.numeric(knn_pred$`0`)
+knn_pred$`1`=as.numeric(knn_pred$`1`)
+#auc: method 1
+knnroc <- roc(test_ranks,knn_pred[,2], levels = c(0, 1), direction = "<")
+auc(knnroc)
+#auc: method 2
+pred_knn <- prediction(knn_pred[,2], test_ranks)
+performance(pred_knn, "auc")@y.values[[1]]
 ```
 
 # GAM
