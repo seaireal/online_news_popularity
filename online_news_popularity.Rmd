@@ -2,11 +2,7 @@
 title: "Online News Popularity"
 author: "Hui Wang, Shanshan Hu, and Zhichao Hu"
 date: "4/1/2020"
-output:
-  pdf_document: default
-  word_document: default
-  html_document:
-    keep_md: yes
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
@@ -14,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggthemes)
 library(glmnet) # ridge and lasso
+library(gam) # for gam
 library(pls) # pcr pls
 library(leaps) # regsubset
 library(MASS) # lda qda
@@ -25,7 +22,6 @@ library(boot) # cross validation
 library(car) # vif, residual plots, partial residual plots
 library (ROCR) 
 library (pROC) # ROC AUC plot
-library(gam) # for gam
 library(tree)
 library(randomForest)
 ```
@@ -655,7 +651,7 @@ roc(test_ranks, gamlr.pred, levels = c(0, 1), direction = "<") %>% auc()
 set.seed(1)
 # perform LDA on the training data
 # use predictors chosen by Lasso
-lda_mod = lda(formula_lg, data = df_train)
+lda_mod = lda(formula(lgmod), data = df_train)
 
 #coef(lda_mod) %>% dim()
 lda_pred = predict(lda_mod, df_test, type="prob")
