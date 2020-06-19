@@ -20,8 +20,8 @@ library(e1071) # knn with prob
 library(gbm) # boosting
 library(boot) # cross validation
 library(car) # vif, residual plots, partial residual plots
-library (ROCR) 
-library (pROC) # ROC AUC plot
+library(ROCR) 
+library(pROC) # ROC AUC plot
 library(tree)
 library(randomForest)
 ```
